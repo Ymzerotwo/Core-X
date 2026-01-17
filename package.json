@@ -1,0 +1,15 @@
+{
+    "name": "core-x",
+    "version": "0.0.1",
+    "description": "Core-X",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "core-x"
+    ],
+    "author": "Ym_zerotwo",
+    "license": "MIT",
+    "type": "module"
+}
