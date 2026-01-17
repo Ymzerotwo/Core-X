@@ -7,18 +7,17 @@ import { v4 as uuidv4 } from 'uuid';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 
-// Import Internal Modules
 import { logger } from './config/logger.js';
-// import routes from './routes/v1/index.js'; // (Uncomment when routes are ready)
+// import routes from './routes/v1/index.js';
 
 const app = express();
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 // =============================================================================
-// 0. Trust Proxy (Critical for Rate Limiting & Logging behind proxies)
+// 0. Trust Proxy
 // =============================================================================
-app.set('trust proxy', 1); // Trust the first proxy (e.g., Nginx, Heroku, Cloudflare)
-app.disable('x-powered-by'); // Hide "Express" header (Helmet does this, but being explicit is good)
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
 
 // =============================================================================
 // 1. Request ID & Logging Middleware
@@ -29,7 +28,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Advanced Logging Middleware
 app.use((req, res, next) => {
   const startTime = Date.now();
   res.on('finish', () => {
@@ -40,7 +38,7 @@ app.use((req, res, next) => {
       url: req.url,
       status: res.statusCode,
       duration: `${duration}ms`,
-      ip: req.ip // Will be correct now because of 'trust proxy'
+      ip: req.ip
     };
 
     if (res.statusCode >= 500) logger.error('Server Error', logData);
@@ -51,33 +49,31 @@ app.use((req, res, next) => {
 });
 
 // =============================================================================
-// 2. Security Configuration (Enhanced)
+// 2. Security Configuration
 // =============================================================================
-
-// A. Helmet with Custom CSP
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      defaultSrc: ["'self'"], 
+      scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:', 'https:'],
-      connectSrc: ["'self'", 'https://*.supabase.co'], // Allow Supabase Realtime
+      connectSrc: ["'self'", 'https://*.supabase.co'],
+      fontSrc: ["'self'", 'data:', 'https:'],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
     }
   },
   hsts: { maxAge: 31536000, includeSubDomains: true, preload: true }
 }));
 
-// B. Secure CORS Strategy
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',')
-  : ['http://localhost:3000', 'http://localhost:5173']; // Defaults for React/Vite
+  : ['http://localhost:3000', 'http://localhost:5173'];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -89,23 +85,25 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type', 'Authorization', 'X-Request-ID',
-    'ngrok-skip-browser-warning', 'Bypass-Tunnel-Reminder' // Keep these for local dev tools
+    'ngrok-skip-browser-warning', 'Bypass-Tunnel-Reminder'
   ],
   maxAge: 86400
 };
 
+// ✅ هذا السطر يكفي لتفعيل CORS لكل الروابط بما فيها OPTIONS
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Enable Pre-Flight across-the-board
+
+// ❌ تم حذف سطر app.options لأنه يسبب مشاكل مع Express 5 وغير ضروري هنا
+
 app.use(cookieParser());
 app.use(compression({ level: 6, threshold: 1024 }));
 
 // =============================================================================
-// 3. Body Parsing & Validation
+// 3. Body Parsing
 // =============================================================================
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// JSON Syntax Error Handler
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
     return res.status(400).json({
@@ -122,12 +120,12 @@ app.use((err, req, res, next) => {
 // 4. Rate Limiting
 // =============================================================================
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 200,
   message: { success: false, code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => ipKeyGenerator(req), // Uses req.ip (fixed by trust proxy)
+  keyGenerator: (req) => ipKeyGenerator(req),
   skip: (req) => req.path === '/health'
 });
 
@@ -147,8 +145,8 @@ app.get('/health', (req, res) => {
 
 // app.use('/api/v1', routes);
 
-// 404 Handler
-app.use('*', (req, res) => {
+// 404 Handler (بدون مسار ليعمل كـ Catch-All)
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     code: 'NOT_FOUND',
@@ -163,7 +161,6 @@ app.use('*', (req, res) => {
 app.use((err, req, res, next) => {
   const statusCode = err.status || err.statusCode || 500;
   
-  // Don't log "Not allowed by CORS" as an error, just a warning
   if (err.message === 'Not allowed by CORS') {
     logger.warn(`CORS Blocked: ${req.headers.origin}`);
     return res.status(403).json({

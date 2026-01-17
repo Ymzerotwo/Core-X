@@ -7,7 +7,7 @@ import { testSupabaseConnection } from './config/supabase.js';
 const PORT = process.env.PORT || 5000;
 const ENV = process.env.NODE_ENV || 'development';
 
-const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'JWT_ACCESS_SECRET'];
+const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
 const missing = requiredEnv.filter(key => !process.env[key]);
 
 if (missing.length > 0) {
