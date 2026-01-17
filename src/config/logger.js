@@ -39,9 +39,7 @@ const consoleFormat = winston.format.combine(
     else if (level === 'http') levelColored = chalk.magenta(levelColored);
     else if (level === 'debug') levelColored = chalk.blue(levelColored);
 
-    return `${chalk.gray(timestamp)} [${chalk.cyan(service)}] ${levelColored}: ${message} ${
-      stack ? '\n' + chalk.red(stack) : ''
-    }`;
+    return `${chalk.gray(timestamp)} [${chalk.cyan(service)}] ${levelColored}: ${message} ${stack ? '\n' + chalk.red(stack) : ''}`;
   })
 );
 
