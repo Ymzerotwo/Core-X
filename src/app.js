@@ -6,7 +6,6 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { v4 as uuidv4 } from 'uuid';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
-
 import { logger } from './config/logger.js';
 // import routes from './routes/v1/index.js';
 
