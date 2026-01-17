@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 import { logger } from './config/logger.js';
+import hpp from 'hpp';
 // import routes from './routes/v1/index.js';
 
 const app = express();
@@ -46,42 +47,67 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"], 
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", 'data:', 'https:'],
-      connectSrc: ["'self'", 'https://*.supabase.co'],
-      fontSrc: ["'self'", 'data:', 'https:'],
+      scriptSrc: ["'self'"], 
+      styleSrc: ["'self'", "'unsafe-inline'"], 
+      imgSrc: ["'self'", "data:", "https:", "https://*.supabase.co"],
+      connectSrc: ["'self'", "https://*.supabase.co"],
+      fontSrc: ["'self'", "data:", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
       upgradeInsecureRequests: [],
     }
   },
-  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true }
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  noSniff: true,
+  xssFilter: true,
 }));
 
+const isProduction = process.env.NODE_ENV === 'production';
 const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',')
+  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
   : ['http://localhost:3000', 'http://localhost:5173'];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      return callback(null, true);
+    }
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      logger.warn(`Blocked CORS request from: ${origin}`);
+      logger.warn(`🚫 Blocked CORS request from: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
-    'Content-Type', 'Authorization', 'X-Request-ID',
-    'ngrok-skip-browser-warning', 'Bypass-Tunnel-Reminder'
+    'Content-Type',
+    'Authorization',
+    'X-Request-ID',
+    ...(!isProduction ? ['ngrok-skip-browser-warning', 'Bypass-Tunnel-Reminder'] : []),
   ],
-  maxAge: 86400
+
+  exposedHeaders: [
+    'X-Request-ID',
+    'X-Total-Count',      
+    'X-RateLimit-Limit',  
+    'X-RateLimit-Remaining', 
+    'X-RateLimit-Reset',     
+  ],
+  maxAge: isProduction ? 86400 : 3600,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
-
-
+app.use(hpp());
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(compression({ level: 6, threshold: 1024 }));
