@@ -13,15 +13,9 @@ import { logger } from './config/logger.js';
 const app = express();
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-// =============================================================================
-// 0. Trust Proxy
-// =============================================================================
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
-// =============================================================================
-// 1. Request ID & Logging Middleware
-// =============================================================================
 app.use((req, res, next) => {
   req.id = req.headers['x-request-id'] || uuidv4();
   res.setHeader('X-Request-ID', req.id);
@@ -48,9 +42,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// =============================================================================
-// 2. Security Configuration
-// =============================================================================
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -90,17 +82,10 @@ const corsOptions = {
   maxAge: 86400
 };
 
-// ✅ هذا السطر يكفي لتفعيل CORS لكل الروابط بما فيها OPTIONS
+
 app.use(cors(corsOptions));
-
-// ❌ تم حذف سطر app.options لأنه يسبب مشاكل مع Express 5 وغير ضروري هنا
-
 app.use(cookieParser());
 app.use(compression({ level: 6, threshold: 1024 }));
-
-// =============================================================================
-// 3. Body Parsing
-// =============================================================================
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
@@ -116,9 +101,6 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// =============================================================================
-// 4. Rate Limiting
-// =============================================================================
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
@@ -131,9 +113,6 @@ const generalLimiter = rateLimit({
 
 app.use('/api', generalLimiter);
 
-// =============================================================================
-// 5. Routes & Endpoints
-// =============================================================================
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -145,7 +124,7 @@ app.get('/health', (req, res) => {
 
 // app.use('/api/v1', routes);
 
-// 404 Handler (بدون مسار ليعمل كـ Catch-All)
+
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -155,9 +134,7 @@ app.use((req, res) => {
   });
 });
 
-// =============================================================================
-// 6. Global Error Handler
-// =============================================================================
+
 app.use((err, req, res, next) => {
   const statusCode = err.status || err.statusCode || 500;
   
