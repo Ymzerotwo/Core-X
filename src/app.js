@@ -107,6 +107,7 @@ const corsOptions = {
   preflightContinue: false,
   optionsSuccessStatus: 204
 };
+
 app.use(hpp());
 app.use(cors(corsOptions));
 app.use(cookieParser());
