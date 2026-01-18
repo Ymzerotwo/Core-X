@@ -1,40 +1,59 @@
-import { logger } from '../src/config/logger.js';
+import { test, describe } from 'node:test'; // استخدم نظام اختبار Node.js الأصلي
+import assert from 'node:assert';
 import fs from 'fs';
 import path from 'path';
-import chalk from 'chalk';
+import { logger, logThreat } from '../src/config/logger.js';
 
-console.log(chalk.bold.white('\n🚀 --- Starting Logger System Test --- \n'));
-console.log(chalk.cyan('1️⃣  Sending test logs...'));
-
-logger.error('Test: This is an Error - should appear in error-*.log');
-logger.warn('Test: This is a Warning');
-logger.info('Test: This is Info');
-logger.http('Test: This is an HTTP log request');
-logger.debug('Test: Debug trace - Is this visible? (Check .env LOG_LEVEL)');
-
-console.log(chalk.cyan('\n2️⃣  Simulating a real exception...'));
-
-try {
-  throw new Error('Experimental error to test system resilience!');
-} catch (err) {
-  logger.error('Caught experimental error successfully', err);
-}
-
-console.log(chalk.cyan('\n3️⃣  Checking file system integrity...'));
-
-setTimeout(() => {
+describe('📝 System Logger & Security Audit', () => {
   const logsDir = path.join(process.cwd(), 'logs');
-  if (fs.existsSync(logsDir)) {
-    console.log(chalk.green('✅ "logs" directory exists.'));
-    const files = fs.readdirSync(logsDir);
-    if (files.length > 0) {
-      console.log(chalk.green(`✅ Found ${files.length} log files:`));
-      files.forEach(file => console.log(chalk.gray(`   - ${file}`)));
-      console.log(chalk.bold.green('\n🎉 Test Successful! Logger system is operational.'));
-    } else {
-      console.log(chalk.red('❌ Directory exists but is empty! Write permission issue?'));
-    }
-  } else {
-    console.log(chalk.red('❌ Test Failed: "logs" directory was not created!'));
-  }
-}, 500);
+  const securityLogsDir = path.join(logsDir, 'security');
+
+  test('1️⃣ Should write standard application logs', (t, done) => {
+    logger.info('Test Info Log: System initialized');
+    logger.warn('Test Warn Log: Resource usage high');
+    logger.error('Test Error Log: Database timeout');
+
+    setTimeout(() => {
+      assert.ok(fs.existsSync(logsDir), 'Logs directory should exist');
+
+      const files = fs.readdirSync(logsDir);
+      const logFiles = files.filter(f => f.endsWith('.log'));
+
+      assert.ok(logFiles.length > 0, 'Should have standard log files (combined/error)');
+
+      const hasStandardLogs = logFiles.some(f => f.includes('combined') || f.includes('error'));
+      assert.ok(hasStandardLogs, 'Should find standard log files');
+
+      done();
+    }, 500);
+  });
+
+  test('2️⃣ Should write security threats to dedicated audit folder', (t, done) => {
+    logThreat({
+      event: 'SQL_INJECTION_TEST',
+      severity: 'CRITICAL',
+      ip: '127.0.0.1',
+      description: 'Testing security logger integration'
+    });
+
+    logThreat({
+      event: 'SUSPICIOUS_ACTIVITY',
+      severity: 'MEDIUM',
+      ip: '192.168.0.1',
+      description: 'Testing audit trail'
+    });
+
+    setTimeout(() => {
+      assert.ok(fs.existsSync(securityLogsDir), 'Security logs directory should exist');
+      const securityFiles = fs.readdirSync(securityLogsDir);
+
+      const threatLogs = securityFiles.filter(f => f.includes('threats') && f.endsWith('.log'));
+      assert.ok(threatLogs.length > 0, 'Should create threats log file for CRITICAL events');
+
+      const auditLogs = securityFiles.filter(f => f.includes('audit') && f.endsWith('.log'));
+      assert.ok(auditLogs.length > 0, 'Should create audit log file for all security events');
+
+      done();
+    }, 500);
+  });
+});

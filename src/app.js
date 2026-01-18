@@ -1,20 +1,26 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import hpp from 'hpp';
 import compression from 'compression';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { v4 as uuidv4 } from 'uuid';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 import { logger } from './config/logger.js';
-import hpp from 'hpp';
-// import routes from './routes/v1/index.js';
+import { securityMiddleware } from './middleware/security.middleware.js';
+import { sendResponse } from './utils/responseHandler.js';
+import { HTTP_CODES, RESPONSE_KEYS } from './constants/responseCodes.js';
+
 
 const app = express();
 const isDevelopment = process.env.NODE_ENV === 'development';
+const isProduction = process.env.NODE_ENV === 'production';
+
 
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
+
 
 app.use((req, res, next) => {
   req.id = req.headers['x-request-id'] || uuidv4();
@@ -26,6 +32,7 @@ app.use((req, res, next) => {
   const startTime = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - startTime;
+    if (req.path === '/health') return;
     const logData = {
       requestId: req.id,
       method: req.method,
@@ -34,7 +41,6 @@ app.use((req, res, next) => {
       duration: `${duration}ms`,
       ip: req.ip
     };
-
     if (res.statusCode >= 500) logger.error('Server Error', logData);
     else if (res.statusCode >= 400) logger.warn('Client Error', logData);
     else if (isDevelopment) logger.info('Request Completed', logData);
@@ -42,13 +48,12 @@ app.use((req, res, next) => {
   next();
 });
 
-
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"], 
-      scriptSrc: ["'self'"], 
-      styleSrc: ["'self'", "'unsafe-inline'"], 
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "https://*.supabase.co"],
       connectSrc: ["'self'", "https://*.supabase.co"],
       fontSrc: ["'self'", "data:", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
@@ -59,120 +64,73 @@ app.use(helmet({
       upgradeInsecureRequests: [],
     }
   },
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true,
-  },
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   noSniff: true,
   xssFilter: true,
 }));
 
-const isProduction = process.env.NODE_ENV === 'production';
-const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
-  : ['http://localhost:3000', 'http://localhost:5173'];
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      logger.warn(`🚫 Blocked CORS request from: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Request-ID',
-    ...(!isProduction ? ['ngrok-skip-browser-warning', 'Bypass-Tunnel-Reminder'] : []),
-  ],
-
-  exposedHeaders: [
-    'X-Request-ID',
-    'X-Total-Count',      
-    'X-RateLimit-Limit',  
-    'X-RateLimit-Remaining', 
-    'X-RateLimit-Reset',     
-  ],
-  maxAge: isProduction ? 86400 : 3600,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-};
-
-app.use(hpp());
-app.use(cors(corsOptions));
-app.use(cookieParser());
-app.use(compression({ level: 6, threshold: 1024 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
-
-app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).json({
-      success: false,
-      code: 'INVALID_JSON',
-      message: 'Invalid JSON format received',
-      requestId: req.id
-    });
-  }
-  next(err);
-});
-
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
-  message: { success: false, code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' },
+  message: { success: false, code: 429, message: 'Too many requests' },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => ipKeyGenerator(req),
   skip: (req) => req.path === '/health'
 });
-
 app.use('/api', generalLimiter);
 
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
+  : ['http://localhost:3000', 'http://localhost:5173'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      logger.warn(`🚫 CORS Blocked: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  allowedHeaders: [
+    'Content-Type', 'Authorization', 'X-Request-ID',
+    ...(!isProduction ? ['ngrok-skip-browser-warning', 'Bypass-Tunnel-Reminder'] : [])
+  ],
+  exposedHeaders: ['X-Request-ID', 'X-Total-Count', 'X-RateLimit-Limit', 'X-RateLimit-Remaining'],
+  maxAge: isProduction ? 86400 : 3600
+}));
+
+
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ limit: '10kb', extended: true }));
+app.use(cookieParser());
+app.use(compression({ level: 6, threshold: 1024 }));
+app.use(securityMiddleware);
+app.use(hpp());
+
+
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-    service: process.env.SERVICE_NAME
-  });
+  res.status(200).json({ status: 'OK', service: process.env.SERVICE_NAME });
 });
 
 // app.use('/api/v1', routes);
 
 
 app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    code: 'NOT_FOUND',
-    message: `Endpoint ${req.method} ${req.originalUrl} not found`,
-    requestId: req.id
-  });
+  return sendResponse(res, req, HTTP_CODES.NOT_FOUND, RESPONSE_KEYS.NOT_FOUND);
 });
 
 
 app.use((err, req, res, next) => {
-  const statusCode = err.status || err.statusCode || 500;
-  
   if (err.message === 'Not allowed by CORS') {
-    logger.warn(`CORS Blocked: ${req.headers.origin}`);
-    return res.status(403).json({
-      success: false,
-      code: 'CORS_ERROR',
-      message: 'Origin not allowed'
-    });
+    return sendResponse(res, req, HTTP_CODES.FORBIDDEN, RESPONSE_KEYS.UNAUTHORIZED_ACCESS);
   }
-
+  if (err instanceof SyntaxError && 'body' in err) {
+    return sendResponse(res, req, HTTP_CODES.BAD_REQUEST, RESPONSE_KEYS.VALIDATION_ERROR, null, { message: 'Invalid JSON' });
+  }
   logger.error('Unhandled Exception', {
     message: err.message,
     stack: err.stack,
@@ -180,13 +138,14 @@ app.use((err, req, res, next) => {
     url: req.originalUrl
   });
 
-  res.status(statusCode).json({
-    success: false,
-    code: err.code || 'INTERNAL_SERVER_ERROR',
-    message: isDevelopment ? err.message : 'Something went wrong',
-    requestId: req.id,
-    ...(isDevelopment && { stack: err.stack })
-  });
+  return sendResponse(
+    res,
+    req,
+    HTTP_CODES.INTERNAL_SERVER_ERROR,
+    RESPONSE_KEYS.SERVER_ERROR,
+    null,
+    err
+  );
 });
 
 export default app;
@@ -197,23 +156,18 @@ export default app;
  * ==============================================================================
  *
  * This file configures the Express application and its middleware stack.
- * It is responsible for "how" requests are handled, but not for "listening"
- * to ports (separation of concerns).
  *
  * 🛡️ Security Architecture:
- * - Trust Proxy: Configured to support reverse proxies (Nginx/Cloudflare) correctly.
- * - Helmet: Hardens HTTP headers (CSP, HSTS, X-Frame-Options).
- * - CORS: Dynamic origin checking based on `CORS_ORIGINS` env variable.
- * - Rate Limiting: Global protection against DDoS and Brute-force attacks.
+ * - Trust Proxy: Configured to support reverse proxies.
+ * - Helmet: Hardens HTTP headers.
+ * - CORS: Dynamic origin checking.
+ * - Rate Limiting: Global protection.
+ * - WAF: Custom Security Middleware for Deep Scanning.
  *
  * 🧩 Key Middleware:
- * - Request ID: Assigns a unique UUID to every request for tracing.
- * - Logger: Advanced structured logging with duration tracking.
- * - Compression: Gzip compression for faster responses.
- * - Body Parser: Safe JSON parsing with 10MB limits and syntax error handling.
+ * - Request ID: Unique UUID for tracing.
+ * - Logger: Structured logging.
+ * - Compression: Gzip.
+ * - Body Parser: Safe JSON (50kb limit)
  *
- * 🧪 Testing Strategy:
- * Because `app` is exported without calling `.listen()`, it can be imported
- * by testing libraries (like Supertest) to run integration tests without
- * spawning a real network server.
  */
