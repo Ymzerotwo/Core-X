@@ -9,6 +9,7 @@ import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 import { logger } from './config/logger.js';
 import { securityMiddleware } from './middleware/security.middleware.js';
+import { csrfProtection } from './middleware/csrf.middleware.js';
 import { sendResponse } from './utils/responseHandler.js';
 import { HTTP_CODES, RESPONSE_KEYS } from './constants/responseCodes.js';
 
@@ -106,7 +107,8 @@ app.use(cors({
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: true }));
-app.use(cookieParser());
+app.use(cookieParser(process.env.COOKIE_SECRET));
+app.use(csrfProtection); 
 app.use(compression({ level: 6, threshold: 1024 }));
 app.use(securityMiddleware);
 app.use(hpp());
