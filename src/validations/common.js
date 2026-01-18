@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SecurityValidator } from '../utils/securityValidator.js';
+import ERROR_MESSAGES from '../constants/validationMessages.js';
 
 // =============================================================================
 const isMalicious = (val) => {
@@ -19,12 +20,12 @@ const MALICIOUS_ERROR = "MALICIOUS_INPUT_DETECTED";
  * Trims and performs security check
  */
 export const safeString = (fieldName, min = 1, max = 255) =>
-    z.string({ required_error: `${fieldName} is required` })
+    z.string({ required_error: ERROR_MESSAGES.required })
         .refine((val) => !isMalicious(val), {
             message: MALICIOUS_ERROR,
         })
-        .min(min, `${fieldName} must be at least ${min} character(s)`)
-        .max(max, `${fieldName} cannot exceed ${max} characters`)
+        .min(min, ERROR_MESSAGES.tooSmall(min))
+        .max(max, ERROR_MESSAGES.tooBig(max))
         .trim();
 
 /**
@@ -32,31 +33,31 @@ export const safeString = (fieldName, min = 1, max = 255) =>
  * Automatically converts to LowerCase
  */
 export const emailRule = z
-    .string({ required_error: 'Email is required' })
+    .string({ required_error: ERROR_MESSAGES.required })
     .refine((val) => !isMalicious(val), {
         message: MALICIOUS_ERROR,
     })
-    .min(1, 'Email cannot be empty')
-    .email('Invalid email format')
+    .min(1, ERROR_MESSAGES.required)
+    .email(ERROR_MESSAGES.email)
     .trim()
     .toLowerCase()
-    .max(100, 'Email is too long');
+    .max(100, ERROR_MESSAGES.tooBig(100));
 
 /**
  * 3. Password Rule
  * Checked for injection patterns as it is a common entry point
  */
 export const passwordRule = z
-    .string({ required_error: 'Password is required' })
+    .string({ required_error: ERROR_MESSAGES.required })
     .refine((val) => !isMalicious(val), {
         message: MALICIOUS_ERROR,
     })
-    .min(8, 'Password must be at least 8 characters')
-    .max(100, 'Password is too long')
-    .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Must contain at least one number')
-    .regex(/[\W_]/, 'Must contain at least one special character');
+    .min(8, ERROR_MESSAGES.password.min)
+    .max(100, ERROR_MESSAGES.password.max)
+    .regex(/[A-Z]/, ERROR_MESSAGES.password.uppercase)
+    .regex(/[a-z]/, ERROR_MESSAGES.password.lowercase)
+    .regex(/[0-9]/, ERROR_MESSAGES.password.number)
+    .regex(/[\W_]/, ERROR_MESSAGES.password.special);
 
 /**
  * 4. ID Rule (UUIDs)
@@ -64,7 +65,7 @@ export const passwordRule = z
  */
 export const idRule = z
     .string()
-    .uuid('Invalid ID format');
+    .uuid(ERROR_MESSAGES.uuid);
 
 /**
  * 5. Phone Rule
@@ -72,7 +73,7 @@ export const idRule = z
  */
 export const phoneRule = z
     .string()
-    .regex(/^\+?[0-9]{10,15}$/, 'Invalid phone number format')
+    .regex(/^\+?[0-9]{10,15}$/, ERROR_MESSAGES.phone)
     .optional();
 
 /**
@@ -80,10 +81,10 @@ export const phoneRule = z
  * Letters, numbers, and underscores only
  */
 export const usernameRule = z
-    .string({ required_error: 'Username is required' })
-    .min(3, 'Username must be at least 3 characters')
-    .max(30, 'Username cannot exceed 30 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores')
+    .string({ required_error: ERROR_MESSAGES.required })
+    .min(3, ERROR_MESSAGES.username.min)
+    .max(30, ERROR_MESSAGES.username.max)
+    .regex(/^[a-zA-Z0-9_]+$/, ERROR_MESSAGES.username.invalid)
     .trim();
 
 /**
