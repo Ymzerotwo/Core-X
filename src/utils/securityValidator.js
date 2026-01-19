@@ -79,16 +79,33 @@ export class SecurityValidator {
  * 🛡️ Security Validator Engine (by Ym_zerotwo)
  * ==============================================================================
  *
- * This utility provides the core logic for detecting malicious payloads.
+ * This utility serves as the core threat detection engine for the application.
+ * It provides methods to scan strings and complex objects for malicious patterns
+ * defined in the system's security rules.
  *
- * 🧠 Core Features:
- * 1. Pattern Matching: Uses regex from `securityPatterns.js` to identify threats.
- * 2. Scoring System: Calculates a risk score based on severity (Critical/High).
- * 3. Deep Scanning: Recursively analyzes complex JSON objects to find hidden threats
- *    nested deep within the request body.
+ * ⚙️ How it Works:
+ * 1. String Scan (`scan`):
+ *    - Iterates through `SECURITY_PATTERNS`.
+ *    - Tests the input string against each regex pattern (SQLi, XSS, etc.).
+ *    - **Immediate Exit**: Stops at the first match to maximize performance.
+ *    - Calculates a `riskScore` based on the `SEVERITY_LEVELS` of the matched threat.
+ *    - Determines an action (`BLOCK`, `WARN`, `ALLOW`) based on the score threshold (75+ blocks).
  *
- * 🚦 Decision Making:
- * - High Risk Score (>= 75) -> Recommends BLOCK.
- * - Medium Risk -> Recommends WARN.
+ * 2. Deep Object Scan (`deepScan`):
+ *    - Recursively traverses nested objects and arrays (up to depth 5).
+ *    - Scans both **Keys** and **Values** to prevent prototype pollution or hidden payloads.
+ *    - **DoS Protection**: Checks string length limit (10,000 chars) to prevent ReDoS or buffer overflow attacks.
+ *    - **Cycle Detection**: Uses `WeakSet` to prevent infinite loops in circular references.
  *
+ * 📂 External Dependencies:
+ * - `../constants/securityPatterns.js`: Contains the regex definitions (`SECURITY_PATTERNS`) and scoring weights (`SEVERITY_LEVELS`).
+ *
+ * 🔒 Security Features:
+ * - **Heuristic Scoring**: Doesn't just say "bad"; it quantifies the risk to allow nuanced decisions.
+ * - **ReDoS Mitigation**: Implements string length caps to prevent regex denial of service.
+ * - **Prototype Pollution Prevention**: Scans object keys to ensure no one tries to overwrite `__proto__`.
+ *
+ * 🚀 Usage:
+ * - Direct: `const result = SecurityValidator.scan(userInput);`
+ * - Via Middleware: Used implicitly by `validate.js` and `security.middleware.js`.
  */

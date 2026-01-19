@@ -32,7 +32,7 @@ export const clearCookie = (res, name) => {
 
 export const rotateCsrfToken = (res) => {
     const token = crypto.randomBytes(32).toString('hex');
-    
+
     const csrfCookieOptions = {
         ...cookieOptions,
         httpOnly: false,
@@ -53,7 +53,7 @@ export const csrfProtection = (req, res, next) => {
         return next();
     }
 
-    const cookieToken = req.signedCookies.csrf_token;
+    const cookieToken = req.cookies.csrf_token;
     const headerToken = req.headers['x-csrf-token'];
     const bodyToken = req.body?._csrf;
     const submittedToken = headerToken || bodyToken;
@@ -143,28 +143,41 @@ export const csrfProtection = (req, res, next) => {
 
 /*
  * ==============================================================================
- * 🛡️ CSRF Protection & Cookie Security (Updated for 2025/2026 Standards)
+ * 🛡️ CSRF Protection & Cookie Security (by Ym_zerotwo)
  * ==============================================================================
  *
  * This middleware secures the application against Cross-Site Request Forgery (CSRF)
  * using the "Double Submit Cookie" pattern combined with strict Origin checks.
  *
- * 🔒 Security Features:
- * - Double Submit Cookie:
- * - Uses a signed, cookie ('csrf_token').
- * - Requires the client to send the same token in 'X-CSRF-Token' header or body.
- * - Stateless yet secure against cross-site posting.
- * * - Cookie Security:
- * - HttpOnly: False for CSRF token (to allow JS read), True for Auth tokens.
- * - Secure: HTTPS only (in Production).
- * - SameSite=Lax: Balances security with usability (e.g. magic links).
- * - Signed: Tamper-proof.
+ * ⚙️ How it Works:
+ * 1. Token Generation (`rotateCsrfToken`):
+ *    - Generates a random 32-byte hex token using `crypto`.
+ *    - Sets a `csrf_token` cookie. crucially, this cookie is NOT `HttpOnly` so the frontend can read it.
+ *    - Sends the same token in the `X-CSRF-Token` response header.
  *
- * - Origin/Referer Check (Layer 2):
- * - Validates request source against trusted domains.
+ * 2. Request Validation (`csrfProtection`):
+ *    - Skips validation for safe methods (GET, HEAD, OPTIONS) or if `NODE_ENV` is 'test'.
+ *    - Reads the `csrf_token` from signed cookies.
+ *    - Reads the submitted token from `X-CSRF-Token` header or `_csrf` body field.
+ *    - **Double Check**: Verifies that the cookie token matches the submitted token.
+ *    - **Origin Check**: Verifies that the request's `Origin` or `Referer` matches `ALLOWED_ORIGINS`.
+ *
+ * 📂 External Dependencies:
+ * - `crypto`: Node.js module used for generating secure random tokens.
+ * - `../constants/responseCodes.js`: Imported for `HTTP_CODES` and `RESPONSE_KEYS` to standardize errors.
+ * - `../utils/responseHandler.js`: Used (`sendResponse`) to send consistent JSON error responses.
+ * - `../config/logger.js`: Used (`logThreat`) to log security incidents like token mismatches or invalid origins.
+ *
+ * 🔒 Security Features:
+ * - **Double Submit Cookie**: Stateless protection that relies on the "same-origin policy" for reading cookies.
+ * - **Cookie Settings**:
+ *   - `Signed`: Prevents tampering.
+ *   - `SameSite='Lax'`: Balances security with top-level navigations.
+ *   - `Secure`: Enforced in production (HTTPS).
+ * - **Origin Verification**: Acts as a second layer of defense.
  *
  * 🚀 Usage:
- * - `csrfProtection` is applied globally or on mutating routes.
- * - `rotateCsrfToken(res)` should be called on Login/Refresh.
- * - Client must read `X-CSRF-Token` from response headers OR cookies and send it in requests.
+ * - Apply `csrfProtection` to mutating routes (POST, PUT, DELETE).
+ * - Call `rotateCsrfToken(res)` on authentication events (Login/Verify).
+ * - Frontend Requirements: Read `csrf_token` from document.cookie and send it as `X-CSRF-Token` header.
  */

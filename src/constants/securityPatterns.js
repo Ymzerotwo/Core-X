@@ -117,17 +117,24 @@ export const SECURITY_PATTERNS = {
  * 🛡️ Security Patterns Dictionary (by Ym_zerotwo)
  * ==============================================================================
  *
- * This file contains regex patterns and severity definitions for various web threats.
+ * This file contains the Regular Expressions (Regex) and Severity Definitions used
+ * by the `SecurityValidator` to identify malicious payloads.
  *
- * 🕵️‍♂️ Detection Scope:
- * - SQL Injection (Standard, Blind, Logic-based)
- * - XSS (Cross-Site Scripting)
- * - Command Injection & Path Traversal
- * - NoSQL Injection
- * - Node.js Prototype Pollution
- * - Suspicious User Agents & Scanners
+ * ⚙️ How it Works:
+ * 1. `SEVERITY_LEVELS`: Defines the weight of each threat.
+ *    - CRITICAL (100): Immediate Block.
+ *    - HIGH (75): Immediate Block.
+ *    - MEDIUM (50): Warn/Log (unless combined with others).
+ * 2. `SECURITY_PATTERNS`: A dictionary of RegEx patterns for common attack vectors.
+ *    - Each entry contains the raw regex, the severity, and a human-readable description.
  *
- * ⚙️ Config:
- * - Severity Levels: Critical, High, Medium, Low (mapped to Actions like Block/Log).
+ * 🔒 Detection Scope:
+ * - **SQL Injection**: Covers standard (`UNION SELECT`), blind (`SLEEP`), and logic-based (`OR 1=1`) attacks.
+ * - **XSS**: Detects scripts tags, event handlers (`onload`), and dangerous protocols (`javascript:`).
+ * - **Cmd Injection**: Looks for shell operators (`&&`, `|`) and binary calls (`/bin/sh`).
+ * - **NoSQL Injection**: specific for Mongo/JSONB (`$where`, `$ne`).
+ * - **Platform Attacks**: Node.js specific Prototype Pollution (`__proto__`).
  *
+ * 🚀 Usage:
+ * - Imported by `src/utils/securityValidator.js` to fuel the scanning engine.
  */

@@ -96,17 +96,27 @@ export const textRule = (fieldName = 'Text', max = 1000) =>
  * 🛡️ Common Validation Rules (by Ym_zerotwo)
  * ==============================================================================
  *
- * This file contains reusable Zod schemas for common data types.
+ * This file serves as a central library of reusable Zod validation schemas
+ * (primitives) used throughout the application to enforce data integrity and security.
+ *
+ * ⚙️ How it Works:
+ * 1. Zod Primitives: Defines base rules for Strings, Emails, Passwords, etc.
+ * 2. Security Refinement (`safeString`):
+ *    - Applies a custom `.refine()` check to every potentially dangerous string.
+ *    - Calls `SecurityValidator.scan()` internally.
+ *    - If a threat is found, it throws a specific error code ("MALICIOUS_INPUT_DETECTED").
+ *    - This specific error is intercepted by the `validate.js` middleware to trigger an immediate block.
+ *
+ * 📂 External Dependencies:
+ * - `zod`: The schema definition library.
+ * - `../utils/securityValidator.js`: The scanning engine used in `.refine()`.
+ * - `../constants/validationMessages.js`: Centralized error messages for localization.
  *
  * 🔒 Security Features:
- * - Integration with SecurityValidator: All string inputs are pre-scanned for threats.
- * - Honeypot Trigger: Malicious inputs trigger a specific error caught by middleware.
- * - Strict Typing: Enforces correct data types and formats (Email, UUID, etc.).
+ * - **Injection Prevention**: By integrating `SecurityValidator` into the basic `safeString` type, almost all text inputs in the app are automatically scanned for SQLi/XSS.
+ * - **Input Normalization**: Emails are automatically lowercased and trimmed.
+ * - **Password Complexity**: Enforces length, casing, numbers, and special characters.
  *
- * 📦 Exports:
- * - safeString: General safe text.
- * - emailRule: Normalized email validation.
- * - passwordRule: Strong password policy.
- * - idRule: UUID validation.
- *
+ * 🚀 Usage:
+ * - `const registerSchema = z.object({ email: emailRule, password: passwordRule });`
  */

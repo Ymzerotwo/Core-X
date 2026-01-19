@@ -36,3 +36,27 @@ const ERROR_MESSAGES = {
 };
 
 export default ERROR_MESSAGES;
+
+/*
+ * ==============================================================================
+ * 🛠️ Validation Messages Configuration (by Ym_zerotwo)
+ * ==============================================================================
+ *
+ * This file acts as the bridge between Zod's internal error generation and
+ * our application's standardized response system.
+ *
+ * ⚙️ How it Works:
+ * 1. Mapping: It assigns a specific `RESPONSE_KEYS` constant (e.g., `EMAIL_INVALID`) to each Zod rule.
+ * 2. Dynamic Messages: Supports functions for errors that need dynamic values (e.g., `tooSmall(min)`).
+ * 3. Categorization: Groups complex rules (like passwords) into nested objects for cleaner access.
+ *
+ * 📂 External Dependencies:
+ * - `./responseCodes.js`: Source of the constant keys.
+ *
+ * 🔒 Benefits:
+ * - **UX Consistency**: Users see the exact same error message for "Invalid Email" across the entire app.
+ * - **Maintenance**: Changing an error text (like "Password must be stronger") happens in ONE place (`responseCodes.js`), not here.
+ *
+ * 🚀 Usage:
+ * - Used in `validations/common.js`: `z.string().email(ERROR_MESSAGES.email)`
+ */

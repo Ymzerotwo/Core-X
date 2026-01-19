@@ -68,18 +68,37 @@ export const validate = (schema) => (req, res, next) => {
  * 🛡️ Validation & Security Middleware (by Ym_zerotwo)
  * ==============================================================================
  *
- * This middleware acts as a dual-layer filter for incoming requests.
+ * This middleware acts as a dual-layer filter for incoming requests, combining
+ * structural validation (Zod) with deep security scanning to prevent malformed
+ * or malicious data from processing.
  *
- * 🔄 Flow:
- * 1. Deep Security Scan: Recursively scans `req.body` for malicious patterns
- *    (SQLi, XSS, NoSQLi, etc.) using `SecurityValidator`.
- *    - If threat detected: Logs the threat (Critical/High), returns a Honeypot
- *      (Fake 200 OK) response to confuse attackers.,
+ * ⚙️ How it Works:
+ * 1. Schema Parsing (`schema.parse`):
+ *    - Validates `req.body`, `req.query`, and `req.params` against the provided Zod schema.
+ *    - The Zod schemas (defined elsewhere) include custom "refinements" that trigger the `SecurityValidator`.
  *
- * 2. Schema Validation: Uses `Zod` to validate data structure and types.
- *    - If invalid: Returns a standard 400 Bad Request with field-specific error messages.
+ * 2. Threat Detection:
+ *    - If Zod throws an error, we inspect the error messages.
+ *    - If a specific error "MALICIOUS_INPUT_DETECTED" is found:
+ *      - **Action**: Immediate Block (403 Forbidden).
+ *      - **Logging**: A CRITICAL threat is logged via `logThreat` with details hidden for security.
+ *      - **Response**: A generic "Security Policy Violation" message is returned.
+ *
+ * 3. Validation Errors:
+ *    - If errors are standard validation issues (e.g., missing field, invalid email):
+ *    - **Action**: Return 400 Bad Request.
+ *    - **Format**: Errors are formatted into a clean `{ field: message }` object for the frontend.
+ *
+ * 📂 External Dependencies:
+ * - `zod`: The validation library used for defining schemas and parsing data.
+ * - `../utils/responseHandler.js`: For sending standardized Success/Error responses.
+ * - `../config/logger.js`: For logging security incidents.
+ *
+ * 🔒 Security Features:
+ * - **Deep Inspection**: Catch SQL Injection, XSS, and Shell Injection patterns within the validation layer.
+ * - **Fail-Fast**: Invalid or dangerous requests are stopped before reaching controllers.
+ * - **Error Sanitization**: Detailed security error info is NOT returned to the client (Security by Obscurity).
  *
  * 🚀 Usage:
- * app.post('/register', validate(registerSchema), registerController);
- *
+ * - `router.post('/login', validate(loginSchema), loginController);`
  */

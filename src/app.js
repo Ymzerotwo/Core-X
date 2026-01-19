@@ -107,8 +107,8 @@ app.use('/api', generalLimiter);
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: true }));
-app.use(hpp()); 
-app.use(securityMiddleware); 
+app.use(hpp());
+app.use(securityMiddleware);
 app.use(csrfProtection);
 
 
@@ -156,19 +156,31 @@ export default app;
  * 🏭 Application Factory (by Ym_zerotwo)
  * ==============================================================================
  *
- * This file configures the Express application and its middleware stack.
+ * This file configures the Express application, serving as the central hub where
+ * all middleware, security layers, and routes are assembled.
  *
- * 🛡️ Security Architecture:
- * - Trust Proxy: Configured to support reverse proxies.
- * - Helmet: Hardens HTTP headers.
- * - CORS: Dynamic origin checking.
- * - Rate Limiting: Global protection.
- * - WAF: Custom Security Middleware for Deep Scanning.
+ * ⚙️ How it Works:
+ * 1. Security Headers (`Helmet`): Sets strict CSP, HSTS, and Frameguard to prevent XSS/Clickjacking.
+ * 2. Traffic Control:
+ *    - `cors`: strict origin filtering.
+ *    - `rateLimit`: Global throttle (200 requests / 15 mins).
+ *    - `hpp`: Protects against HTTP Parameter Pollution.
+ * 3. Observability:
+ *    - Assigns a unique `req.id` (UUID) to every request.
+ *    - Logs request duration and status code on completion.
+ * 4. Error Handling: A centralized error middleware catches all crashes and formats them via `sendResponse`.
  *
- * 🧩 Key Middleware:
- * - Request ID: Unique UUID for tracing.
- * - Logger: Structured logging.
- * - Compression: Gzip.
- * - Body Parser: Safe JSON (50kb limit)
+ * 📂 External Dependencies:
+ * - `express`: The web framework.
+ * - `helmet`, `cors`, `hpp`: Security standard libraries.
+ * - `./middleware/security.middleware.js`: Our custom WAF.
+ * - `./middleware/csrf.middleware.js`: CSRF protection.
  *
+ * 🔒 Security Features:
+ * - **Defense in Depth**: Combines standard headers (Helmet) with custom logic (WAF, CSRF).
+ * - **Information Hiding**: Disables `X-Powered-By`; generic error messages in production.
+ * - **DoS Protection**: Limits body size (10kb) and request rate to prevent flooding.
+ *
+ * 🚀 Usage:
+ * - Imported by `server.js` to start the HTTP listener.
  */

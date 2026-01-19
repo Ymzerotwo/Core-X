@@ -43,7 +43,7 @@ if (cluster.isPrimary) {
         const worker = cluster.fork();
         const messageHandler = (msg) => {
           if (msg === 'READY') {
-            worker.off('message', messageHandler); 
+            worker.off('message', messageHandler);
             resolve();
           }
         };
@@ -73,7 +73,7 @@ if (cluster.isPrimary) {
   import('./src/server.js')
     .then(() => {
       logger.info(`[Worker] ✅ Worker ${process.pid} initialized successfully`);
-      if (process.send) process.send('READY'); 
+      if (process.send) process.send('READY');
     })
     .catch(err => {
       logger.error(`[Worker] ❌ Failed to start worker ${process.pid}`, err);
@@ -91,17 +91,38 @@ if (cluster.isPrimary) {
 
 /*
  * ==============================================================================
- * 🚀 Application Entry Point (Cluster Manager)
+ * 🚀 Application Entry Point (Cluster Manager) (by Ym_zerotwo)
  * ==============================================================================
  *
- * This file manages the Node.js Cluster to utilize all CPU cores.
+ * This file acts as the Process Manager for the application. It creates a cluster of
+ * Node.js processes (Workers) to fully utilize multi-core CPUs, ensuring high
+ * availability and performance.
  *
- * ⚙️ Features:
- * 1. Multi-Core Utilization: Spawns a worker for each CPU core.
- * 2. Self-Healing: Automatically restarts workers if they crash (up to a limit).
- * 3. Loop Protection: `MAX_RESTARTS` prevents infinite crash loops during startup.
- * 4. Graceful Shutdown: Listens for SIGTERM to allow clean exit in Docker/K8s.
+ * ⚙️ How it Works:
+ * 1. Environment Validation (`validateEnv`):
+ *    - Checks for the presence of critical `.env` variables (PORT, SUPABASE_URL, etc.).
+ *    - If any are missing, the process terminates immediately to prevent unstable startups.
  *
- * 📦 Usage:
- * - Run `npm start` to launch.
+ * 2. Clustering (Primary Process):
+ *    - Detects the number of CPU cores (`numCPUs`).
+ *    - Forks a worker process for each core used.
+ *    - **Sequencing**: Waits for a worker to send a 'READY' signal before starting the next one. This prevents CPU spikes during massive startups.
+ *    - **Self-Healing**: Listens for 'exit' events. If a worker dies, it replaces it automatically.
+ *
+ * 3. Worker Process:
+ *    - Imports `src/server.js` which initializes the actual Express app and HTTP server.
+ *    - Signals 'READY' back to the primary process when initialization is complete.
+ *
+ * 📂 External Dependencies:
+ * - `cluster`: Native Node.js module for multi-processing.
+ * - `./src/server.js`: The worker logic file.
+ * - `dotenv`: Loads environment variables.
+ *
+ * 🔒 Security Features:
+ * - **Pre-flight Check**: Validates identifying configuration secrets (like COOKIE_SECRET) before running.
+ * - **Crash Loop Protection**: The `MAX_RESTARTS` counter prevents the server from infinitely restarting if there is a fundamental bug, saving system resources.
+ * - **Isolation**: A crash in one worker does not bring down the entire application; other workers continue serving requests.
+ *
+ * � Usage:
+ * - `npm start` -> Runs this file.
  */

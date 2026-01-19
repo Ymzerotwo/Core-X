@@ -18,7 +18,7 @@ if (missing.length > 0) {
 const startServer = async () => {
   try {
     const dbConnected = await testSupabaseConnection();
-    
+
     if (!dbConnected) {
       if (ENV === 'production') {
         logger.warn('⚠️ Starting server without DB connection (Risk Mode - Production)');
@@ -66,7 +66,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception:', error);
-  process.exit(1); 
+  process.exit(1);
 });
 
 startServer();
@@ -76,13 +76,29 @@ startServer();
  * 🔌 Server Entry Point (by Ym_zerotwo)
  * ==============================================================================
  *
- * This file is responsible for:
- * 1. Validating critical environment variables before startup.
- * 2. Establishing and verifying database connections (Supabase).
- * 3. Creating the HTTP server instance using the Express app.
- * 4. Handling graceful shutdowns to prevent data loss during deployments.
- * 5. Catching global process-level errors (Uncaught Exceptions).
+ * This file is the bootstrapper for the Node.js process. It handles the lifecycle
+ * of the server from environment validation to graceful shutdown.
  *
- * 🔄 Flow:
- * index.js (Cluster) -> imports server.js (Worker) -> imports app.js (Express)
+ * ⚙️ How it Works:
+ * 1. Environment Check: Scans `.env` for critical keys (`SUPABASE_URL`, etc.). If missing, it kills the process immediately (`process.exit(1)`).
+ * 2. Dependency Check: Tries to connect to Supabase.
+ *    - In Development: Fails fast if DB is down.
+ *    - In Production: Warns but proceeds (Fail-Open) to allow the app to serve non-DB endpoints (e.g., Health checks).
+ * 3. HTTP Server: Wraps the Express `app` in a native Node.js HTTP server.
+ * 4. Graceful Shutdown:
+ *    - Listens for `SIGTERM` and `SIGINT` signals (e.g., from Kubernetes or Docker).
+ *    - Stops accepting new connections.
+ *    - Force kills the process after 10 seconds if connections are stuck (Zombie protection).
+ *
+ * 📂 External Dependencies:
+ * - `http`: Native Node.js module.
+ * - `./app.js`: The Express application logic.
+ * - `./config/logger.js`: For startup/shutdown logs.
+ *
+ * 🔒 Security Features:
+ * - **Fail-Safe Startup**: Prevents the app from running in a broken state (missing config).
+ * - **Uncaught Exception Handling**: Global catch-all for unhandled promises/errors to log them before crashing.
+ *
+ * 🚀 Usage:
+ * - `npm start` or `node src/server.js`
  */

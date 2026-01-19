@@ -148,13 +148,24 @@ export const DEFAULT_MESSAGES = {
  * ==============================================================================
  * 📖 Constant Definitions (by Ym_zerotwo)
  * ==============================================================================
- * * This file serves as the single source of truth for API response codes.
- * * 🛠️ Why use this?
- * 1. Consistency: Ensures the Frontend and Backend speak the exact same language.
- * 2. Magic Strings: Avoids hardcoding strings like "User not found" inside controllers.
- * 3. Internationalization (i18n): The Frontend uses `RESPONSE_KEYS` to lookup 
- * translations (e.g., Arabic/English), while `DEFAULT_MESSAGES` acts as a 
- * safety net (fallback) for developers or tools like Postman.
- * * 📦 Usage:
- * Import these constants into your controllers or the `responseHandler.js` utility.
+ *
+ * This file serves as the single source of truth for API response codes and messages.
+ * It maps abstract keys (Slugs) to concrete HTTP Status Codes and Human-Readable messages.
+ *
+ * ⚙️ How it Works:
+ * 1. `HTTP_CODES`: Standard mapping of status names to integer codes (e.g., OK -> 200).
+ * 2. `RESPONSE_KEYS`: A large enum of string constants. These are the "Slugs" sent to the frontend.
+ *    - Frontend uses these keys to fetch localized text (e.g., in Arabic or Spanish).
+ * 3. `DEFAULT_MESSAGES`: A fallback dictionary of English messages.
+ *    - Used by the backend `responseHandler` to populate the `message` field if no translation is found.
+ *
+ * 📂 External Dependencies:
+ * - None. This file is a self-contained dependency for the rest of the app.
+ *
+ * 🔒 Security Features:
+ * - **Abstraction**: Errors are returned as codes (e.g., `invalid_credentials`), preventing the leakage of sensitive logic (e.g., "password incorrect" vs "email not found").
+ * - **Standardization**: Prevents developers from inventing random error messages, ensuring a consistent attack surface analysis.
+ *
+ * 🚀 Usage:
+ * - `return sendResponse(res, req, HTTP_CODES.OK, RESPONSE_KEYS.LOGIN_SUCCESS);`
  */

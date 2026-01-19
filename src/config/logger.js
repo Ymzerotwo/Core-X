@@ -98,7 +98,7 @@ export const securityLogger = winston.createLogger({
     new DailyRotateFile({
       filename: path.join(securityLogsDir, 'threats-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
-      level: 'warn', 
+      level: 'warn',
       maxSize: '20m',
       maxFiles: '30d',
       zippedArchive: true,
@@ -127,43 +127,32 @@ export { logger };
 
 /*
  * ==============================================================================
- * 📝 Logger System Documentation (by Ym_zerotwo)
+ * 📝 Logger System Configuration (by Ym_zerotwo)
  * ==============================================================================
  *
  * This file establishes a centralized logging system based on Winston, replacing
- * standard console.log for better persistence and debugging.
+ * standard console.log to ensure all events are captured, formatted, and persisted.
  *
- * 📂 Log Storage:
- * - Logs are automatically saved in the root `logs/` directory.
- * - `error-YYYY-MM-DD.log`: Contains only error-level logs (critical for debugging).
- * - `combined-YYYY-MM-DD.log`: Contains all log levels (info, warn, error).
+ * ⚙️ How it Works:
+ * 1. Log Levels: Configured to use standard npm levels (error, warn, info, http, verbose, debug, silly).
+ * 2. Transports (Outputs):
+ *    - **Console**: Active in Development; colored output to `stdout`.
+ *    - **Files**: Active in all environments; rotates daily to manage disk space.
+ *      - `logs/error-%DATE%.log`: Purely for errors (stack traces included).
+ *      - `logs/combined-%DATE%.log`: All activity (good for tracing flow).
+ * 3. Security Logger: A separate instance dedicated to recording `logThreat` events into a distinct folder (`logs/security/`).
  *
- * 🛡️ Security Logging (New):
- * - `logs/security/threats-*.log`: Critical & High severity threats (SQL Injection, XSS).
- * - `logs/security/audit-*.log`: Full security trail for auditing purposes.
+ * 📂 External Dependencies:
+ * - `winston`: The core logging library.
+ * - `winston-daily-rotate-file`: Manages log rotation (e.g., keeps logs for 14-30 days then deletes them).
+ * - `chalk`: Used for coloring console output in development.
  *
- * 🚀 Usage Examples:
- * ------------------
- * 1. Import:
- *    import { logger, logThreat } from '../config/logger.js';
+ * 🔒 Security Features:
+ * - **Isolation**: Security threats are stored separately from application noise.
+ * - **Sanitization**: Designed to be extended with formatters that strip PIIm (though not implemented here yet).
+ * - **Persistence**: Ensures critical errors aren't lost if the process crashes.
  *
- * 2. General Logging:
- *    logger.info('Server started successfully');
- *    logger.error('Database connection failed', err);
- *
- * 3. Security Logging:
- *    logThreat({
- *      event: 'SQL_INJECTION_ATTEMPT',
- *      severity: 'CRITICAL',
- *      ip: req.ip,
- *      description: 'System blocked suspicious input'
- *    });
- *
- * 🔗 Integration with Morgan (HTTP Logs):
- * ---------------------------------------
- * app.use(morgan('combined', { stream: logger.stream }));
- *
- * 💡 Environment Behavior:
- * - Development: Logs are printed to the console with colors for readability.
- * - Production: Logs are written to files only for performance.
+ * 🚀 Usage:
+ * - Direct: `logger.info('User logged in');`
+ * - Security: `logThreat({ event: 'SQLI', severity: 'CRITICAL', ip: '1.2.3.4' });`
  */

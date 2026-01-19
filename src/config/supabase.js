@@ -54,34 +54,28 @@ export default supabaseAdmin;
  * ==============================================================================
  *
  * This file initializes a high-privilege Supabase client (Service Role) specifically
- * designed for backend operations. It bypasses Row Level Security (RLS).
+ * designed for backend operations. It allows the server to bypass Row Level Security (RLS)
+ * to perform administrative tasks (e.g., managing users, deleting data across tenants).
  *
- * 🔐 Security & Architecture:
- * - Uses `SERVICE_ROLE_KEY`: Grants full admin access to the database.
- * - `persistSession: false`: CRITICAL setting. The backend is stateless; we do
- * not store admin session tokens on the server file system to prevent leaks.
- * - `autoRefreshToken: false`: Service Role keys do not expire, so refresh is disabled.
+ * ⚙️ Config & Mechanics:
+ * 1. Environment Loading: Reads `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from .env.
+ * 2. Client Initialization:
+ *    - `persistSession: false`: Server-side clients must be stateless. We use tokens from the request, not a local session file.
+ *    - `autoRefreshToken: false`: Service Role keys don't expire, so we disable auto-refresh overhead.
+ * 3. Connection Test (`testSupabaseConnection`):
+ *    - Performs a lightweight call (`listUsers`) on startup to verify credentials.
+ *    - Fails fast (exits process) if keys are missing in production.
  *
- * 🚀 Usage Examples:
- * ------------------
- * 1. Import the admin client:
- * import supabaseAdmin from '../config/supabase.js';
+ * 📂 External Dependencies:
+ * - `@supabase/supabase-js`: The official SDK.
+ * - `dotenv`: For loading environment variables.
+ * - `./logger.js`: To log connection status and errors.
  *
- * 2. Database Operations (Bypassing RLS):
- * // This will return data even if RLS policies usually forbid it
- * const { data, error } = await supabaseAdmin.from('private_table').select('*');
+ * 🔒 Security Features:
+ * - **Key Validation**: Checks for key presence before attempting connection.
+ * - **Privilege Isolation**: This client is EXCLUSIVE to the backend. It is never exposed to the frontend.
+ * - **Statelessness**: Prevents memory leaks and session confusion by disabling persistence.
  *
- * 3. Auth Administration (Manage Users):
- * // Create or delete users programmatically
- * const { data } = await supabaseAdmin.auth.admin.createUser({ email: '...', password: '...' });
- * const { error } = await supabaseAdmin.auth.admin.deleteUser('user_uuid');
- *
- * 🧪 Connection Testing:
- * ----------------------
- * The file includes a `testSupabaseConnection()` function that verifies the
- * Service Role Key validity by attempting a lightweight admin operation on startup.
- *
- * ⚠️ WARNING:
- * Never expose the `supabaseAdmin` client or the Service Role Key to the client-side
- * (Browser/Mobile App). It has full control over your database.
+ * 🚀 Usage:
+ * - `const { data, error } = await supabaseAdmin.auth.admin.getUserById(id);`
  */

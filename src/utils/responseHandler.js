@@ -11,12 +11,12 @@ import { DEFAULT_MESSAGES } from '../constants/responseCodes.js';
  * @returns {Object} Express JSON response.
  */
 export const sendResponse = (
-  res, 
-  req, 
-  statusCode, 
-  responseKey, 
-  data = null, 
-  pagination = null, 
+  res,
+  req,
+  statusCode,
+  responseKey,
+  data = null,
+  pagination = null,
   errorDetails = null
 ) => {
   const isSuccess = statusCode >= 200 && statusCode < 300;
@@ -60,18 +60,42 @@ export const sendResponse = (
  * ==============================================================================
  * 📤 Unified Response Handler (by Ym_zerotwo)
  * ==============================================================================
- * * This utility function enforces a strict API response structure across the entire application.
- * * 🏗️ Structure Output:
+ *
+ * This utility function enforces a strict, consistent API response structure across
+ * the entire application, ensuring that the frontend always receives data in a
+ * predictable format regardless of success or failure.
+ *
+ * ⚙️ How it Works:
+ * 1. Parameters: Receives request context (`req`, `res`), status code, application-specific key (`slug`), data, and errors.
+ * 2. Message Lookup: Resolves the human-readable English message from `DEFAULT_MESSAGES` using the provided key.
+ * 3. Meta Data Construction: Automatically generates request ID and timestamp for traceability.
+ * 4. Pagination (Optional): Formats pagination metadata (total pages, limit) into the `meta` object if provided.
+ * 5. Environment Check:
+ *    - **Development**: Attaches a `debug` field with stack traces and raw error details.
+ *    - **Production**: Strips all sensitive error details, returning only the user-friendly message.
+ *
+ * 🏗️ Output Structure:
  * {
- * "success": boolean,
- * "code": number,
- * "errorCode": string,  <-- Used by Frontend for translation
- * "message": string,    <-- Fallback English message
- * "data": any,
- * "meta": { ... }
+ *   "success": boolean,      // true for 2xx, false otherwise
+ *   "code": number,          // HTTP Status Code (e.g., 200, 400)
+ *   "slug": string,          // Stable error/success key for Frontend i18n (e.g., 'USER_NOT_FOUND')
+ *   "message": string,       // Fallback English text
+ *   "data": any,             // The actual payload (user object, list, etc.)
+ *   "meta": {
+ *     "requestId": string,
+ *     "timestamp": string,
+ *     "pagination": { ... }  // Optional
+ *   },
+ *   "debug": { ... }         // ONLY in Development
  * }
- * * 🛡️ Benefits:
- * 1. Predictability: The Frontend always knows what structure to expect.
- * 2. Tracing: Automatically attaches `req.id` to every response for easier debugging.
- * 3. Security: Hides sensitive error details in Production mode automatically.
+ *
+ * 📂 External Dependencies:
+ * - `../constants/responseCodes.js`: Source of truth for `DEFAULT_MESSAGES` mapping.
+ *
+ * 🔒 Security Features:
+ * - **Information Hiding**: Automatically suppresses stack traces and internal error details in production to prevent leakage.
+ * - **Consistency**: Prevents accidental exposure of raw database errors by forcing a structured response.
+ *
+ * 🚀 Usage:
+ * - `return sendResponse(res, req, 200, 'USER_LOGIN_SUCCESS', { token: ... });`
  */
