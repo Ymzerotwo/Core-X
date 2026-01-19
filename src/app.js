@@ -23,7 +23,7 @@ app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
 app.use((req, res, next) => {
-  req.id = req.headers['x-request-id'] || uuidv4();
+  req.id = req.headers['x-request-id'] || `req_${uuidv4().split('-')[0]}`;
   res.setHeader('X-Request-ID', req.id);
   next();
 });

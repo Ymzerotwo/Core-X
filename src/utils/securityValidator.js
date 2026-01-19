@@ -19,6 +19,7 @@ export class SecurityValidator {
           desc: config.description
         });
         riskScore += severityInfo.score;
+        break; // Stop checking other patterns if one is found
       }
     }
     return {
@@ -29,39 +30,46 @@ export class SecurityValidator {
     };
   }
 
-  static deepScan(obj) {
-    let allThreats = [];
-    let totalRisk = 0;
-
-    // 1. Structural Scan (Stringify to catch keys & structure-dependent patterns)
-    try {
-      const rawString = JSON.stringify(obj);
-      if (rawString) {
-        const structuralResult = this.scan(rawString);
-        if (!structuralResult.isSafe) {
-          allThreats = [...allThreats, ...structuralResult.threats];
-          totalRisk += structuralResult.riskScore;
+  static deepScan(obj, depth = 0, verified = new WeakSet()) {
+    if (depth > 5) return { hasThreats: false, threats: [], totalRisk: 0 };
+    if (!obj || typeof obj !== 'object') {
+      if (typeof obj === 'string') {
+        if (obj.length > 10000) { // Specify the expected text length
+          return {
+            hasThreats: true,
+            threats: [{ type: 'PAYLOAD_TOO_LARGE', severity: 'HIGH', desc: 'Text too long (>10000 chars)' }],
+            totalRisk: 75
+          };
         }
+        const result = this.scan(obj);
+        return { hasThreats: !result.isSafe, threats: result.threats, totalRisk: result.riskScore };
       }
-    } catch (e) {
-      // Ignore stringify errors (circular refs)
+      return { hasThreats: false, threats: [], totalRisk: 0 };
     }
-    const traverse = (value) => {
-      if (typeof value === 'string') {
-        const result = this.scan(value);
-        if (!result.isSafe) {
-          allThreats = [...allThreats, ...result.threats];
-          totalRisk += result.riskScore;
-        }
-      } else if (typeof value === 'object' && value !== null) {
-        Object.values(value).forEach(traverse);
+
+    if (verified.has(obj)) return { hasThreats: false, threats: [], totalRisk: 0 }; // Cycle detected
+    verified.add(obj);
+
+    for (const [key, value] of Object.entries(obj)) {
+      const keyResult = this.scan(key);
+      if (!keyResult.isSafe) {
+        return {
+          hasThreats: true,
+          threats: keyResult.threats,
+          totalRisk: keyResult.riskScore
+        };
       }
-    };
-    traverse(obj);
+
+      const valResult = this.deepScan(value, depth + 1, verified);
+      if (valResult.hasThreats) {
+        return valResult;
+      }
+    }
+
     return {
-      hasThreats: allThreats.length > 0,
-      threats: allThreats,
-      totalRisk
+      hasThreats: false,
+      threats: [],
+      totalRisk: 0
     };
   }
 }

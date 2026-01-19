@@ -11,7 +11,7 @@ export const SECURITY_PATTERNS = {
   // 1. SQL Injection (Classic & Blind)
   // ---------------------------------------------------------------------------
   SQL_INJECTION: {
-    pattern: /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b\s+([*(`'"]|FROM|INTO|TABLE|DATABASE|SET|VALUES))|(\b(UNION|TRUNCATE|EXEC|GRANT|REVOKE)\b)/i,
+    pattern: /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b\s+([*(`'"]|FROM|INTO|TABLE|DATABASE|SET|VALUES))|(\b(UNION\s+SELECT|TRUNCATE\s+TABLE|EXEC(\s|\()|GRANT\s+\w+\s+TO|REVOKE\s+\w+\s+FROM)\b)/i,
     severity: 'CRITICAL',
     description: 'SQL Injection Attempt (Standard Keywords)',
   },
@@ -21,7 +21,7 @@ export const SECURITY_PATTERNS = {
     description: 'Blind/Time-based SQL Injection Attempt',
   },
   SQL_LOGIC: {
-    pattern: /(\bOR\b\s+['"]?\w+['"]?\s*=\s*['"]?\w+['"]?|\bAND\b\s+['"]?\w+['"]?\s*=\s*['"]?\w+['"]?)/i,
+    pattern: /(\b(OR|AND)\b\s+['"]?(\d+|\w+)['"]?\s*=\s*['"]?\3['"]?)/i,
     severity: 'HIGH',
     description: 'Logic Manipulation SQL Injection (OR 1=1)',
   },

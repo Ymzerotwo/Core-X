@@ -18,43 +18,7 @@ export const securityMiddleware = (req, res, next) => {
     return sendResponse(res, req, HTTP_CODES.FORBIDDEN, RESPONSE_KEYS.PERMISSION_DENIED, null, null, { reason: 'Suspicious Client via WAF' });
   }
 
-  const payloadCheck = SecurityValidator.deepScan({
-    body: req.body,
-    query: req.query,
-    params: req.params
-  });
 
-  if (payloadCheck.hasThreats) {
-    logThreat({
-      event: 'MALICIOUS_PAYLOAD_DETECTED',
-      ip: req.ip,
-      method: req.method,
-      url: req.originalUrl,
-      threats: payloadCheck.threats,
-      riskScore: payloadCheck.totalRisk,
-      severity: payloadCheck.totalRisk >= 100 ? 'CRITICAL' : 'HIGH'
-    });
-
-    if (payloadCheck.totalRisk >= 75) {
-      return sendResponse(
-        res,
-        req,
-        HTTP_CODES.OK,
-        RESPONSE_KEYS.OPERATION_SUCCESS,
-        null
-      );
-    }
-
-    return sendResponse(
-      res,
-      req,
-      HTTP_CODES.BAD_REQUEST,
-      RESPONSE_KEYS.VALIDATION_ERROR,
-      null,
-      null,
-      { message: 'Security policy violation' }
-    );
-  }
 
   next();
 };
@@ -64,17 +28,20 @@ export const securityMiddleware = (req, res, next) => {
  * 🛡️ Global Security Middleware (WAF) (by Ym_zerotwo)
  * ==============================================================================
  *
- * This middleware acts as the first line of defense (Firewall) for the application.
+ * This middleware acts as the FIRST line of defense (Perimeter Firewall).
  * It runs on EVERY request before it reaches any route or controller.
  *
  * 🧠 Logic:
- * 1. User-Agent Analysis: Directly blocks known hacking tools (sqlmap, nessus, etc.).
- * 2. Pre-emptive Deep Scan: Analyzes the entire request payload (body, query, params)
- *    for malicious patterns using the SecurityValidator engine.
+ * 1. User-Agent Analysis: Directly blocks known hacking tools (sqlmap, nessus, etc.)
+ * using the SecurityValidator engine.
+ *
+ * 🚀 Performance Note:
+ * - This middleware is intentionally lightweight.
+ * - Deep Payload Analysis (SQLi, XSS checks) is delegated to the Validation Layer (Zod)
+ * to ensure maximum throughput and avoid scanning invalid data.
  *
  * 🚦 Defense Strategy:
- * - Bot/Scanner -> 403 Forbidden.
- * - Critical Payload (SQLi, XSS) -> Honeypot (200 OK) to deceive attacker.
- * - Medium Payload -> 400 Bad Request with generic error.
+ * - Bot/Scanner -> 403 Forbidden (Immediate Block).
+ * - Valid User-Agent -> Passed to Zod Validation.
  *
  */

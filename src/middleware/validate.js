@@ -1,3 +1,8 @@
+import { z } from 'zod';
+import { sendResponse } from '../utils/responseHandler.js';
+import { HTTP_CODES, RESPONSE_KEYS } from '../constants/responseCodes.js';
+import { logThreat } from '../config/logger.js';
+
 export const validate = (schema) => (req, res, next) => {
     try {
         schema.parse({
@@ -10,6 +15,33 @@ export const validate = (schema) => (req, res, next) => {
     } catch (error) {
         if (error instanceof z.ZodError) {
             const zodErrors = error.errors || error.issues || [];
+
+
+            const isMalicious = zodErrors.some(err => err.message === "MALICIOUS_INPUT_DETECTED");
+
+            if (isMalicious) {
+                const threatDetails = zodErrors
+                    .filter(err => err.message === "MALICIOUS_INPUT_DETECTED")
+                    .map(err => ({ field: err.path.join('.'), input: "HIDDEN_FOR_SECURITY" }));
+
+                logThreat({
+                    event: 'MALICIOUS_INPUT_BLOCKED',
+                    ip: req.ip,
+                    method: req.method,
+                    url: req.originalUrl,
+                    details: threatDetails,
+                    severity: 'CRITICAL'
+                });
+                return sendResponse(
+                    res,
+                    req,
+                    HTTP_CODES.FORBIDDEN,
+                    RESPONSE_KEYS.PERMISSION_DENIED,
+                    null,
+                    null,
+                    { reason: 'Security Policy Violation' }
+                );
+            }
 
             const formattedErrors = zodErrors.reduce((acc, curr) => {
                 const field = curr.path[1] || curr.path[0];

@@ -19,14 +19,14 @@ const MALICIOUS_ERROR = "MALICIOUS_INPUT_DETECTED";
  * Used for names, titles, notes
  * Trims and performs security check
  */
-export const safeString = (fieldName, min = 1, max = 255) =>
+export const safeString = (fieldName, min = 1, max = 1000) =>
     z.string({ required_error: ERROR_MESSAGES.required })
-        .refine((val) => !isMalicious(val), {
-            message: MALICIOUS_ERROR,
-        })
+        .trim()
         .min(min, ERROR_MESSAGES.tooSmall(min))
         .max(max, ERROR_MESSAGES.tooBig(max))
-        .trim();
+        .refine((val) => !isMalicious(val), {
+            message: MALICIOUS_ERROR,
+        });
 
 /**
  * 2. Email Rule
@@ -34,14 +34,13 @@ export const safeString = (fieldName, min = 1, max = 255) =>
  */
 export const emailRule = z
     .string({ required_error: ERROR_MESSAGES.required })
-    .refine((val) => !isMalicious(val), {
-        message: MALICIOUS_ERROR,
-    })
-    .min(1, ERROR_MESSAGES.required)
-    .email(ERROR_MESSAGES.email)
+    .buffer() // Allows raw string access if needed
     .trim()
     .toLowerCase()
-    .max(100, ERROR_MESSAGES.tooBig(100));
+    .min(1, ERROR_MESSAGES.required)
+    .email(ERROR_MESSAGES.email)
+    .max(100, ERROR_MESSAGES.tooBig(100))
+
 
 /**
  * 3. Password Rule
@@ -49,15 +48,13 @@ export const emailRule = z
  */
 export const passwordRule = z
     .string({ required_error: ERROR_MESSAGES.required })
-    .refine((val) => !isMalicious(val), {
-        message: MALICIOUS_ERROR,
-    })
     .min(8, ERROR_MESSAGES.password.min)
     .max(100, ERROR_MESSAGES.password.max)
     .regex(/[A-Z]/, ERROR_MESSAGES.password.uppercase)
     .regex(/[a-z]/, ERROR_MESSAGES.password.lowercase)
     .regex(/[0-9]/, ERROR_MESSAGES.password.number)
-    .regex(/[\W_]/, ERROR_MESSAGES.password.special);
+    .regex(/[\W_]/, ERROR_MESSAGES.password.special)
+
 
 /**
  * 4. ID Rule (UUIDs)
