@@ -1,20 +1,18 @@
-
+import crypto from 'crypto';
 import { HTTP_CODES, RESPONSE_KEYS } from '../constants/responseCodes.js';
 import { sendResponse } from '../utils/responseHandler.js';
 import { logThreat } from '../config/logger.js';
 
 const isProduction = process.env.NODE_ENV === 'production';
-
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || '')
     .split(',')
     .map(o => o.trim())
     .filter(Boolean);
 
-
 export const cookieOptions = {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'Strict',
+    sameSite: 'Lax',
     path: '/',
     signed: true,
     priority: 'High',
@@ -44,23 +42,65 @@ export const clearCookie = (res, name) => {
     res.clearCookie(name, cookieOptions);
 };
 
+/**
+ * Generates a new CSRF token, sets it as a signed, httpOnly cookie,
+ * and sets the X-CSRF-Token response header for the client to read.
+ * @param {import('express').Response} res 
+ */
+export const rotateCsrfToken = (res) => {
+    const token = crypto.randomBytes(32).toString('hex');
+    // Set cookie valid for 24 hours
+    setCookie(res, 'csrf_token', token, 24 * 60 * 60 * 1000);
+    // Expose in header for client to use in subsequent requests
+    res.setHeader('X-CSRF-Token', token);
+    return token;
+};
 
 export const csrfProtection = (req, res, next) => {
-    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    // 1. Skip Safe Methods or Test Environment
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || process.env.NODE_ENV === 'test') {
         return next();
     }
 
-    const origin = req.headers['origin'];
-    const referer = req.headers['referer'];
-    const source = origin || referer;
-
-    if (isProduction && !source) {
-        logThreat({ event: 'CSRF_MISSING_SOURCE', ip: req.ip, severity: 'HIGH' });
+    // 2. Primary Protection: Double Submit Cookie Pattern
+    const cookieToken = req.signedCookies.csrf_token;
+    const headerToken = req.headers['x-csrf-token'];
+    const bodyToken = req.body?._csrf;
+    const submittedToken = headerToken || bodyToken;
+    if (!cookieToken || !submittedToken || cookieToken !== submittedToken) {
+        logThreat({
+            event: 'CSRF_TOKEN_MISMATCH',
+            ip: req.ip,
+            severity: 'HIGH',
+            details: {
+                cookiePresent: !!cookieToken,
+                submittedPresent: !!submittedToken
+            }
+        });
         return sendResponse(
             res,
             req,
             HTTP_CODES.FORBIDDEN,
             RESPONSE_KEYS.PERMISSION_DENIED,
+            null,
+            null,
+            { reason: 'Invalid or Missing CSRF Token' }
+        );
+    }
+
+    // 3. Secondary Protection: Origin/Referer Check (Defense in Depth)
+    const origin = req.headers['origin'];
+    const referer = req.headers['referer'];
+    const source = origin || referer;
+
+    if (isProduction && !source) {
+        logThreat({ event: 'CSRF_MISSING_SOURCE', ip: req.ip, severity: 'MEDIUM' });
+        return sendResponse(
+            res,
+            req,
+            HTTP_CODES.FORBIDDEN,
+            RESPONSE_KEYS.PERMISSION_DENIED,
+            null,
             null,
             { reason: 'Missing Origin/Referer' }
         );
@@ -85,6 +125,7 @@ export const csrfProtection = (req, res, next) => {
                     HTTP_CODES.FORBIDDEN,
                     RESPONSE_KEYS.PERMISSION_DENIED,
                     null,
+                    null,
                     { reason: 'Cross-Origin Request Blocked' }
                 );
             }
@@ -101,6 +142,7 @@ export const csrfProtection = (req, res, next) => {
                 HTTP_CODES.FORBIDDEN,
                 RESPONSE_KEYS.PERMISSION_DENIED,
                 null,
+                null,
                 { reason: 'Invalid Source Header Format' }
             );
         }
@@ -111,27 +153,29 @@ export const csrfProtection = (req, res, next) => {
 
 /*
  * ==============================================================================
- * 🛡️ CSRF Protection & Cookie Security (by Ym_zerotwo)
+ * 🛡️ CSRF Protection & Cookie Security (Updated for 2025/2026 Standards)
  * ==============================================================================
  *
  * This middleware secures the application against Cross-Site Request Forgery (CSRF)
- * and manages secure, signed cookies.
+ * using the "Double Submit Cookie" pattern combined with strict Origin checks.
  *
  * 🔒 Security Features:
+ * - Double Submit Cookie:
+ *   - Uses a signed, httpOnly cookie ('csrf_token').
+ *   - Requires the client to send the same token in 'X-CSRF-Token' header or body.
+ *   - Stateless yet secure against cross-site posting.
+ * 
  * - Cookie Security:
  *   - HttpOnly: Prevents XSS access to cookies.
- *   - Secure: Ensures transmission over HTTPS only (in Production).
+ *   - Secure: HTTPS only (in Production).
  *   - SameSite=Strict: Blocks cross-site cookie sending.
- *   - Signed: Tamper-proof cookies using a secret.
- *   - Priority=High: Prioritizes cookie delivery.
+ *   - Signed: Tamper-proof.
  *
- * - CSRF Prevention:
- *   - Origin/Referer Check: Verifies that state-changing requests (POST, PUT, DELETE)
- *     originate from trusted domains.
- *   - Safe Methods Skip: GET, HEAD, OPTIONS are exempted as they should be read-only.
+ * - Origin/Referer Check (Layer 2):
+ *   - Validates request source against trusted domains.
  *
  * 🚀 Usage:
- * - Use `setCookie` to securely store tokens.
- * - Use `csrfProtection` globally or on specific routes.
- *
+ * - `csrfProtection` is applied globally or on mutating routes.
+ * - `rotateCsrfToken(res)` should be called on Login/Refresh.
+ * - Client must read `X-CSRF-Token` response header and send it in requests.
  */

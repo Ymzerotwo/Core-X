@@ -15,7 +15,7 @@ export const securityMiddleware = (req, res, next) => {
       ua: userAgent,
       severity: 'MEDIUM'
     });
-    return sendResponse(res, req, HTTP_CODES.FORBIDDEN, RESPONSE_KEYS.PERMISSION_DENIED, null, { reason: 'Suspicious Client via WAF' });
+    return sendResponse(res, req, HTTP_CODES.FORBIDDEN, RESPONSE_KEYS.PERMISSION_DENIED, null, null, { reason: 'Suspicious Client via WAF' });
   }
 
   const payloadCheck = SecurityValidator.deepScan({
@@ -39,9 +39,9 @@ export const securityMiddleware = (req, res, next) => {
       return sendResponse(
         res,
         req,
-        HTTP_CODES.OK, 
+        HTTP_CODES.OK,
         RESPONSE_KEYS.OPERATION_SUCCESS,
-        null 
+        null
       );
     }
 
@@ -50,6 +50,7 @@ export const securityMiddleware = (req, res, next) => {
       req,
       HTTP_CODES.BAD_REQUEST,
       RESPONSE_KEYS.VALIDATION_ERROR,
+      null,
       null,
       { message: 'Security policy violation' }
     );

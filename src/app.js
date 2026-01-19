@@ -22,7 +22,6 @@ const isProduction = process.env.NODE_ENV === 'production';
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
-
 app.use((req, res, next) => {
   req.id = req.headers['x-request-id'] || uuidv4();
   res.setHeader('X-Request-ID', req.id);
@@ -71,17 +70,6 @@ app.use(helmet({
   xssFilter: true,
 }));
 
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
-  message: { success: false, code: 429, message: 'Too many requests' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => ipKeyGenerator(req),
-  skip: (req) => req.path === '/health'
-});
-app.use('/api', generalLimiter);
-
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
   : ['http://localhost:3000', 'http://localhost:5173'];
@@ -104,14 +92,24 @@ app.use(cors({
   maxAge: isProduction ? 86400 : 3600
 }));
 
+app.use(compression({ level: 6, threshold: 1024 }));
 
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: { success: false, code: 429, message: 'Too many requests' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req),
+  skip: (req) => req.path === '/health'
+});
+app.use('/api', generalLimiter);
+app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: true }));
-app.use(cookieParser(process.env.COOKIE_SECRET));
+app.use(hpp()); 
+app.use(securityMiddleware); 
 app.use(csrfProtection);
-app.use(compression({ level: 6, threshold: 1024 }));
-app.use(securityMiddleware);
-app.use(hpp());
 
 
 app.get('/health', (req, res) => {

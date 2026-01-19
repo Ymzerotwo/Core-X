@@ -32,6 +32,20 @@ export class SecurityValidator {
   static deepScan(obj) {
     let allThreats = [];
     let totalRisk = 0;
+
+    // 1. Structural Scan (Stringify to catch keys & structure-dependent patterns)
+    try {
+      const rawString = JSON.stringify(obj);
+      if (rawString) {
+        const structuralResult = this.scan(rawString);
+        if (!structuralResult.isSafe) {
+          allThreats = [...allThreats, ...structuralResult.threats];
+          totalRisk += structuralResult.riskScore;
+        }
+      }
+    } catch (e) {
+      // Ignore stringify errors (circular refs)
+    }
     const traverse = (value) => {
       if (typeof value === 'string') {
         const result = this.scan(value);

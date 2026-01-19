@@ -54,7 +54,7 @@ export const SECURITY_PATTERNS = {
   // 3. Node.js Specific Attacks (Important!)
   // ---------------------------------------------------------------------------
   PROTOTYPE_POLLUTION: {
-    pattern: /("|')?(__proto__|constructor|prototype)("|')?\s*:/g,
+    pattern: /"(__proto__|constructor|prototype)"\s*:/g,
     severity: 'CRITICAL',
     description: 'Node.js Prototype Pollution Attempt',
   },
@@ -83,7 +83,7 @@ export const SECURITY_PATTERNS = {
   // 6. NoSQL Injection (For JSONB in Postgres or MongoDB)
   // ---------------------------------------------------------------------------
   NOSQL_INJECTION: {
-    pattern: /(\$where|\$ne|\$gt|\$lt|\$or|\$in|\$regex)\s*:/g,
+    pattern: /"(\$where|\$ne|\$gt|\$lt|\$or|\$in|\$regex)"\s*:/g,
     severity: 'HIGH',
     description: 'NoSQL Injection Attempt',
   },

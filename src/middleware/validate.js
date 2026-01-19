@@ -1,24 +1,5 @@
-import { z } from 'zod';
-import { sendResponse } from '../utils/responseHandler.js';
-import { HTTP_CODES, RESPONSE_KEYS } from '../constants/responseCodes.js';
-import { logThreat } from '../config/logger.js';
-import { SecurityValidator } from '../utils/securityValidator.js';
-
 export const validate = (schema) => (req, res, next) => {
     try {
-        const securityCheck = SecurityValidator.deepScan(req.body);
-
-        if (securityCheck.hasThreats) {
-            logThreat({
-                event: 'VALIDATION_SECURITY_BLOCK',
-                ip: req.ip,
-                details: 'Malicious pattern detected during pre-validation scan',
-                threats: securityCheck.threats,
-                severity: 'HIGH'
-            });
-            return sendResponse(res, req, HTTP_CODES.OK, RESPONSE_KEYS.OPERATION_SUCCESS);
-        }
-
         schema.parse({
             body: req.body,
             query: req.query,
@@ -30,7 +11,7 @@ export const validate = (schema) => (req, res, next) => {
         if (error instanceof z.ZodError) {
             const zodErrors = error.errors || error.issues || [];
 
-                const formattedErrors = zodErrors.reduce((acc, curr) => {
+            const formattedErrors = zodErrors.reduce((acc, curr) => {
                 const field = curr.path[1] || curr.path[0];
                 acc[field] = curr.message;
                 return acc;
@@ -42,6 +23,7 @@ export const validate = (schema) => (req, res, next) => {
                 HTTP_CODES.BAD_REQUEST,
                 RESPONSE_KEYS.VALIDATION_ERROR,
                 formattedErrors,
+                null,
                 error
             );
         }
