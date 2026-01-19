@@ -11,7 +11,7 @@ export const SECURITY_PATTERNS = {
   // 1. SQL Injection (Classic & Blind)
   // ---------------------------------------------------------------------------
   SQL_INJECTION: {
-    pattern: /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|EXEC|TRUNCATE|CREATE|REPLACE|GRANT|REVOKE)\b\s+([\w*]|[(`'"]))/i,
+    pattern: /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b\s+([*(`'"]|FROM|INTO|TABLE|DATABASE|SET|VALUES))|(\b(UNION|TRUNCATE|EXEC|GRANT|REVOKE)\b)/i,
     severity: 'CRITICAL',
     description: 'SQL Injection Attempt (Standard Keywords)',
   },
@@ -35,7 +35,7 @@ export const SECURITY_PATTERNS = {
     description: 'XSS Attack (Script Tag)',
   },
   XSS_EVENTS: {
-    pattern: /\b(on(error|load|click|mouseover|mouseout|keydown|keyup|submit|change|focus|blur))\s*=/gi,
+    pattern: /\b(on(error|load|click|mouseover|mouseout|keydown|keyup|submit|change|focus|blur))\s*=\s*['"]/gi,
     severity: 'HIGH',
     description: 'XSS Attack (Event Handlers)',
   },
@@ -65,7 +65,7 @@ export const SECURITY_PATTERNS = {
   COMMAND_INJECTION: {
     // Removed common chars like > < | ; unless strictly needed context.
     // Focusing on explicit shell usage or sequences
-    pattern: /(\$\(|`|\|\||&&|\/bin\/sh|\/bin\/bash|cmd\.exe)/g,
+    pattern: /(\$\(|`|\|\||&&|\/bin\/sh|\/bin\/bash|cmd\.exe|powershell)/g,
     severity: 'CRITICAL',
     description: 'OS Command Injection Attempt',
   },
@@ -92,7 +92,7 @@ export const SECURITY_PATTERNS = {
   // 7. XML External Entity (XXE)
   // ---------------------------------------------------------------------------
   XXE_INJECTION: {
-    pattern: /<!ENTITY|<!DOCTYPE|SYSTEM|PUBLIC/i,
+    pattern: /(\.\.\/|\.\.\\|%2e%2e%2f|\/etc\/passwd|\/windows\/win\.ini)/i,
     severity: 'HIGH',
     description: 'XML External Entity (XXE) Attempt',
   },
