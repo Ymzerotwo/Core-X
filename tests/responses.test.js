@@ -28,14 +28,14 @@ describe('📬 Response System & Error Handling Tests', () => {
         return sendResponse(res, req, HTTP_CODES.NOT_FOUND, RESPONSE_KEYS.NOT_FOUND);
     });
     app.get('/error', (req, res) => {
-        return sendResponse(res, req, HTTP_CODES.INTERNAL_SERVER_ERROR, RESPONSE_KEYS.SERVER_ERROR, null, new Error("Database Bomb!"));
+        return sendResponse(res, req, HTTP_CODES.INTERNAL_SERVER_ERROR, RESPONSE_KEYS.SERVER_ERROR, null, null, new Error("Database Bomb!"));
     });
     test('✅ 1. Success Response Structure', async () => {
         const res = await supertest(app).get('/success');
         assert.strictEqual(res.status, 200);
         assert.strictEqual(res.body.success, true);
         assert.strictEqual(res.body.code, 200);
-        assert.strictEqual(res.body.errorCode, 'OPERATION_SUCCESS');
+        assert.strictEqual(res.body.slug, 'OPERATION_SUCCESS');
         assert.ok(res.body.data, 'Should have data');
         assert.strictEqual(res.body.data.id, 123);
         assert.ok(res.body.meta.requestId, 'Should include Request ID');
@@ -43,12 +43,12 @@ describe('📬 Response System & Error Handling Tests', () => {
 
     test('❌ 2. Validation Error (i18n Keys Check)', async () => {
         const res = await supertest(app).post('/validate').send({
-            email: "bad@domain", 
-            password: "Str@1" 
+            email: "bad@domain",
+            password: "Str@1"
         });
         assert.strictEqual(res.status, 400);
         assert.strictEqual(res.body.success, false);
-        assert.strictEqual(res.body.errorCode, 'VALIDATION_ERROR');
+        assert.strictEqual(res.body.slug, 'VALIDATION_ERROR');
         console.log('\n📝 Validation Response Data:', JSON.stringify(res.body.data, null, 2));
         assert.strictEqual(res.body.data.email, 'EMAIL_INVALID');
         assert.strictEqual(res.body.data.password, 'PASSWORD_TOO_SHORT');
@@ -58,7 +58,7 @@ describe('📬 Response System & Error Handling Tests', () => {
         const res = await supertest(app).get('/not-found');
 
         assert.strictEqual(res.status, 404);
-        assert.strictEqual(res.body.errorCode, 'NOT_FOUND');
+        assert.strictEqual(res.body.slug, 'NOT_FOUND');
         assert.strictEqual(res.body.data, null);
     });
 
@@ -67,7 +67,7 @@ describe('📬 Response System & Error Handling Tests', () => {
         process.env.NODE_ENV = 'production';
         const res = await supertest(app).get('/error');
         assert.strictEqual(res.status, 500);
-        assert.strictEqual(res.body.errorCode, 'SERVER_ERROR');
+        assert.strictEqual(res.body.slug, 'SERVER_ERROR');
         assert.strictEqual(res.body.debug, undefined, 'Stack trace should be hidden in production');
         process.env.NODE_ENV = originalEnv;
     });
@@ -77,7 +77,7 @@ describe('📬 Response System & Error Handling Tests', () => {
         process.env.NODE_ENV = 'development';
         const res = await supertest(app).get('/error');
         assert.ok(res.body.debug, 'Debug info should be present in development');
-        assert.strictEqual(res.body.debug.message, 'Database Bomb!');
+        assert.strictEqual(res.body.debug.error_message, 'Database Bomb!');
         process.env.NODE_ENV = originalEnv;
     });
 

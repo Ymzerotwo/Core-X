@@ -98,7 +98,7 @@ export const DEFAULT_MESSAGES = {
   // General
   [RESPONSE_KEYS.OPERATION_SUCCESS]: 'Operation completed successfully.',
   [RESPONSE_KEYS.DATA_RETRIEVED]: 'Data retrieved successfully.',
-  [RESPONSE_KEYS.SERVER_ERROR]: 'An internal server error occurred.',
+  [RESPONSE_KEYS.SERVER_ERROR]: 'Internal Server Error',
   [RESPONSE_KEYS.VALIDATION_ERROR]: 'The provided data is invalid.',
   [RESPONSE_KEYS.MISSING_FIELDS]: 'Required fields are missing.',
   [RESPONSE_KEYS.NOT_FOUND]: 'Resource not found.',
