@@ -97,10 +97,10 @@ app.use(cors({
   },
   credentials: true,
   allowedHeaders: [
-    'Content-Type', 'Authorization', 'X-Request-ID',
+    'Content-Type', 'Authorization', 'X-Request-ID', 'x-csrf-token',
     ...(!isProduction ? ['ngrok-skip-browser-warning', 'Bypass-Tunnel-Reminder'] : [])
   ],
-  exposedHeaders: ['X-Request-ID', 'X-Total-Count', 'X-RateLimit-Limit', 'X-RateLimit-Remaining'],
+  exposedHeaders: ['X-Request-ID', 'X-Total-Count', 'X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-CSRF-Token'],
   maxAge: isProduction ? 86400 : 3600
 }));
 
@@ -108,7 +108,7 @@ app.use(cors({
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: true }));
 app.use(cookieParser(process.env.COOKIE_SECRET));
-app.use(csrfProtection); 
+app.use(csrfProtection);
 app.use(compression({ level: 6, threshold: 1024 }));
 app.use(securityMiddleware);
 app.use(hpp());
@@ -131,7 +131,7 @@ app.use((err, req, res, next) => {
     return sendResponse(res, req, HTTP_CODES.FORBIDDEN, RESPONSE_KEYS.UNAUTHORIZED_ACCESS);
   }
   if (err instanceof SyntaxError && 'body' in err) {
-    return sendResponse(res, req, HTTP_CODES.BAD_REQUEST, RESPONSE_KEYS.VALIDATION_ERROR, null, { message: 'Invalid JSON' });
+    return sendResponse(res, req, HTTP_CODES.BAD_REQUEST, RESPONSE_KEYS.VALIDATION_ERROR, null, null, { message: 'Invalid JSON' });
   }
   logger.error('Unhandled Exception', {
     message: err.message,
@@ -145,6 +145,7 @@ app.use((err, req, res, next) => {
     req,
     HTTP_CODES.INTERNAL_SERVER_ERROR,
     RESPONSE_KEYS.SERVER_ERROR,
+    null,
     null,
     err
   );
