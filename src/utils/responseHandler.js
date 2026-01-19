@@ -1,49 +1,61 @@
-import {  DEFAULT_MESSAGES } from '../constants/responseCodes.js';
+import { DEFAULT_MESSAGES } from '../constants/responseCodes.js';
 
 /**
- * Sends a standardized JSON response.
- * * @param {Object} res - The Express response object.
+ * @param {Object} res - The Express response object.
  * @param {Object} req - The Express request object (used to extract Request ID).
- * @param {Number} statusCode - HTTP status code (use HTTP_CODES constant).
- * @param {String} responseKey - The application specific key (use RESPONSE_KEYS constant).
+ * @param {Number} statusCode - HTTP status code.
+ * @param {String} responseKey - The application specific key (e.g., 'USER_CREATED').
  * @param {Object|Array|null} data - The payload to return to the client.
- * @param {Object|Error|null} errorDetails - Internal error details (stack trace) for debugging.
+ * @param {Object|null} pagination - Optional pagination metadata (page, limit, total).
+ * @param {Object|Error|null} errorDetails - Internal error details for debugging.
  * @returns {Object} Express JSON response.
  */
-export const sendResponse = (res, req, statusCode, responseKey, data = null, errorDetails = null) => {
-  // 1. Determine Success State based on HTTP Code
+export const sendResponse = (
+  res, 
+  req, 
+  statusCode, 
+  responseKey, 
+  data = null, 
+  pagination = null, 
+  errorDetails = null
+) => {
   const isSuccess = statusCode >= 200 && statusCode < 300;
-
-  // 2. Get the English fallback message
-  // If the key doesn't exist in DEFAULT_MESSAGES, use the key itself.
   const message = DEFAULT_MESSAGES[responseKey] || responseKey;
 
-  // 3. Construct the Unified Response Object
-  const response = {
-    success: isSuccess,
-    code: statusCode,        // e.g., 200, 400, 500
-    errorCode: responseKey,  // e.g., 'USER_CREATED', 'INVALID_CREDENTIALS'
-    message: message,        // e.g., 'User created successfully.'
-    data: data,              // The actual payload (User object, List of items, etc.)
-    meta: {
-      requestId: req.id,                 // Trace ID for debugging
-      timestamp: new Date().toISOString()
-    }
+  const meta = {
+    requestId: req.id || 'unknown-id',
+    timestamp: new Date().toISOString(),
   };
 
-  // 4. Attach Debug Information (Development Mode Only)
-  // We never want to expose stack traces or raw database errors in Production.
-  if (errorDetails && process.env.NODE_ENV === 'development') {
-    response.debug = {
-      message: errorDetails.message || errorDetails,
-      stack: errorDetails.stack || undefined,
+  if (pagination) {
+    meta.pagination = {
+      page: pagination.page,
+      limit: pagination.limit,
+      total: pagination.total,
+      totalPages: Math.ceil(pagination.total / pagination.limit)
     };
   }
 
-  // 5. Send the Response
+
+  const response = {
+    success: isSuccess,
+    code: statusCode,        // HTTP Status (e.g., 200, 404)
+    slug: responseKey,       // Application Code for Frontend i18n (Renamed from errorCode)
+    message: message,        // Human-readable English message
+    data: data,              // The actual payload
+    meta: meta               // Traceability & Pagination
+  };
+
+  if (errorDetails && process.env.NODE_ENV === 'development') {
+    response.debug = {
+      error_message: errorDetails.message || errorDetails,
+      stack: errorDetails.stack || undefined,
+      raw: errorDetails // sometimes helpful to see the full raw object
+    };
+  }
+
   return res.status(statusCode).json(response);
 };
-
 /*
  * ==============================================================================
  * 📤 Unified Response Handler (by Ym_zerotwo)
