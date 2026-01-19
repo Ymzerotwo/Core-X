@@ -3,11 +3,7 @@ import { setCookie, clearCookie, rotateCsrfToken } from './csrf.middleware.js';
 import { HTTP_CODES, RESPONSE_KEYS } from '../constants/responseCodes.js';
 import { sendResponse } from '../utils/responseHandler.js';
 import { logger, logThreat } from '../config/logger.js';
-import jwt from 'jsonwebtoken';
-
-if (!process.env.SUPABASE_JWT_SECRET && process.env.NODE_ENV === 'development') {
-    logger.warn('⚠️ SUPABASE_JWT_SECRET is missing! Local JWT verification will be disabled.');
-}
+// import jwt from 'jsonwebtoken'; // Uncomment if using Local Verification
 
 const standardizeUser = (source, isLocal = false) => {
     if (isLocal) {
@@ -18,7 +14,7 @@ const standardizeUser = (source, isLocal = false) => {
             app_metadata: source.app_metadata || {},
             user_metadata: source.user_metadata || {},
             aud: source.aud,
-            created_at: source.created_at || new Date().toISOString() 
+            created_at: source.created_at || new Date().toISOString()
         };
     }
     return {
@@ -32,7 +28,7 @@ const standardizeUser = (source, isLocal = false) => {
     };
 };
 
-const coreAuth = async (req, res, next, isStrict = false) => {
+const coreAuth = async (req, res, next) => {
     try {
         let accessToken = req.signedCookies['access_token'];
         const refreshToken = req.signedCookies['refresh_token'];
@@ -43,37 +39,16 @@ const coreAuth = async (req, res, next, isStrict = false) => {
         }
 
         if (accessToken) {
-            if (!isStrict && process.env.SUPABASE_JWT_SECRET) {
-                try {
-                    const decoded = jwt.verify(accessToken, process.env.SUPABASE_JWT_SECRET);
-                    req.user = standardizeUser(decoded, true);
-                    return next();
-                } catch (err) {
-                    if (err.name === 'TokenExpiredError') {
-                        logger.info('Access Token expired. Proceeding to refresh...');
-                        shouldRefresh = true;
-                    } else if (err.name === 'JsonWebTokenError') {
-                        logThreat({
-                            event: 'INVALID_JWT_SIGNATURE',
-                            ip: req.ip,
-                            severity: 'HIGH',
-                            message: `Signature verification failed: ${err.message}`
-                        });
-                        clearCookie(res, 'access_token');
-                        clearCookie(res, 'refresh_token');
-                        return sendResponse(res, req, HTTP_CODES.FORBIDDEN, RESPONSE_KEYS.INVALID_TOKEN);
-                    } else {
-                        throw err;
-                    }
-                }
-            } else {
-                const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
-                if (user && !error) {
-                    req.user = standardizeUser(user, false);
-                    return next();
-                }
-                shouldRefresh = true;
+            // ☁️ Cloud Verification (Default)
+            const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
+
+            if (user && !error) {
+                req.user = standardizeUser(user, false);
+                return next();
             }
+
+            // If token is invalid/expired on server, try to refresh
+            shouldRefresh = true;
         } else {
             shouldRefresh = true;
         }
@@ -119,8 +94,9 @@ const coreAuth = async (req, res, next, isStrict = false) => {
     }
 };
 
-export const requireAuth = (req, res, next) => coreAuth(req, res, next, false);
-export const requireStrictAuth = (req, res, next) => coreAuth(req, res, next, true);
+export const requireAuth = (req, res, next) => coreAuth(req, res, next);
+// Strict auth is same as normal auth in Cloud-only mode
+//export const requireStrictAuth = (req, res, next) => coreAuth(req, res, next);
 
 /*
  * ==============================================================================
@@ -130,17 +106,39 @@ export const requireStrictAuth = (req, res, next) => coreAuth(req, res, next, tr
  * This middleware manages the security lifecycle of User Sessions.
  *
  * 🔄 Lifecycle:
- * 1. Verify Access Token (Local JWT or Remote).
- * 2. If Invalid Signature -> 🛑 BLOCK & LOG THREAT (HIGH).
- * 3. If Expired -> ⏳ Trigger Refresh Flow.
- * 4. Refresh Session -> ♻️ Rotate Tokens & Update Cookies.
- * 5. Sanitize User Data -> Provide clean `req.user`.
+ * 1. Verify Access Token (Remote check via Supabase).
+ * 2. If Expired/Invalid -> ⏳ Trigger Refresh Flow.
+ * 3. Refresh Session -> ♻️ Rotate Tokens & Update Cookies.
+ * 4. Sanitize User Data -> Provide clean `req.user`.
  *
- * 🛡️ Security Measures:
- * - Signature Verification blocks tampered tokens.
- * - Dynamic Expiration respects provider settings.
- * - Token Rotation prevents replay attacks.
- * - Least Privilege: `req.user` contains only essential data.
- * - Global Safety Net: Ensures no unhandled exceptions crash the request.
+ */
+
+/*
+ * ==============================================================================
+ * � Local JWT Verification (Alternative Method / الطريقة الأخرى)
+ * ==============================================================================
+ * 
+ * لاستخدام التحقق المحلي بدلاً من السحابي (لتوفير الطلبات للخادم):
+ * 1. تأكد من وجود SUPABASE_JWT_SECRET في ملف .env
+ * 2. قم بإلغاء التعليق عن import jwt في الأعلى.
+ * 3. استبدل بلوك "Cloud Verification" في دالة coreAuth بالكود التالي:
  *
+ * if (process.env.SUPABASE_JWT_SECRET) {
+ *     try {
+ *         const decoded = jwt.verify(accessToken, process.env.SUPABASE_JWT_SECRET);
+ *         req.user = standardizeUser(decoded, true);
+ *         return next();
+ *     } catch (err) {
+ *         if (err.name === 'TokenExpiredError') {
+ *             shouldRefresh = true;
+ *         } else if (err.name === 'JsonWebTokenError') {
+ *             logThreat({ event: 'INVALID_JWT_SIGNATURE', ip: req.ip, severity: 'HIGH', message: err.message });
+ *             clearCookie(res, 'access_token');
+ *             clearCookie(res, 'refresh_token');
+ *             return sendResponse(res, req, HTTP_CODES.FORBIDDEN, RESPONSE_KEYS.INVALID_TOKEN);
+ *         } else {
+ *             throw err;
+ *         }
+ *     }
+ * }
  */

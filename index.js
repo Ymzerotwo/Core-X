@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import cluster from 'cluster';
 import os from 'os';
 import { logger } from './src/config/logger.js';
@@ -9,13 +10,50 @@ const desiredWorkers = parseInt(process.env.WORKERS_COUNT || numCPUs, 10);
 const MAX_RESTARTS = 10;
 let restartCount = 0;
 
+const validateEnv = () => {
+  const REQUIRED_VARS = [
+    'NODE_ENV',
+    'PORT',
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'COOKIE_SECRET',
+    // 'SUPABASE_JWT_SECRET' // Not strictly required if using Cloud Auth
+  ];
+
+  const missingVars = REQUIRED_VARS.filter(key => !process.env[key]);
+
+  if (missingVars.length > 0) {
+    logger.error('\n❌ CRITICAL ERROR: Missing Required Environment Variables!');
+    logger.error('-------------------------------------------------------');
+    missingVars.forEach(key => logger.error(`   - ${key}`));
+    logger.error('-------------------------------------------------------');
+    logger.error('Please check your .env file or configuration.\n');
+    process.exit(1);
+  }
+};
+
 if (cluster.isPrimary) {
+  validateEnv();
   if (!isProduction) console.clear();
   logger.info(`[Cluster] 🚀 Primary process ${process.pid} is running`);
-  logger.info(`[Cluster] 🖥️  Detected ${numCPUs} CPU cores → Forking ${desiredWorkers} workers`);
-  for (let i = 0; i < desiredWorkers; i++) {
-    cluster.fork();
-  }
+  logger.info(`[Cluster] 🖥️  Detected ${numCPUs} CPU cores → Forking ${desiredWorkers} workers sequentially...`);
+  const spawnWorkers = async () => {
+    for (let i = 0; i < desiredWorkers; i++) {
+      await new Promise((resolve) => {
+        const worker = cluster.fork();
+        const messageHandler = (msg) => {
+          if (msg === 'READY') {
+            worker.off('message', messageHandler); 
+            resolve();
+          }
+        };
+        worker.on('message', messageHandler);
+      });
+    }
+    logger.info(`[Cluster] ✅ All ${desiredWorkers} workers have started and are fully operational.`);
+  };
+
+  spawnWorkers();
   cluster.on('exit', (worker, code, signal) => {
     restartCount++;
     logger.warn(
@@ -29,19 +67,13 @@ if (cluster.isPrimary) {
       process.exit(1);
     }
   });
-  let onlineWorkers = 0;
-  cluster.on('online', (worker) => {
-    onlineWorkers++;
-    if (onlineWorkers === desiredWorkers) {
-      logger.info(`[Cluster] ✅ All ${desiredWorkers} workers are online and ready.`);
-    }
-  });
 
 } else {
   logger.info(`[Worker] 🔧 Worker ${process.pid} starting...`);
   import('./src/server.js')
     .then(() => {
       logger.info(`[Worker] ✅ Worker ${process.pid} initialized successfully`);
+      if (process.send) process.send('READY'); 
     })
     .catch(err => {
       logger.error(`[Worker] ❌ Failed to start worker ${process.pid}`, err);
