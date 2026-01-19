@@ -89,7 +89,7 @@ core-x/
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/your-repo/core-x.git
+git clone https://github.com/Ymzerotwo/core-x.git
 cd core-x
 npm install
 ```
