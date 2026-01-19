@@ -36,6 +36,7 @@ export const rotateCsrfToken = (res) => {
     const csrfCookieOptions = {
         ...cookieOptions,
         httpOnly: false,
+        signed: false,
     };
 
     res.cookie('csrf_token', token, {
