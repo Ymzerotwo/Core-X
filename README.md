@@ -98,18 +98,32 @@ npm install
 Create a `.env` file in the root directory:
 
 ```env
-NODE_ENV=development
-PORT=5000
+PORT=5000 
+
+# =============================================================================
+# 🪵 Logger Configuration
+# =============================================================================
+NODE_ENV=development # development | production
 SERVICE_NAME=Core-X-Backend
+LOG_LEVEL=debug # debug | http | info | warn | error
+ENABLE_CONSOLE_LOGS=false # Force console logs in production if true
 
-# Security
-COOKIE_SECRET=super_secure_random_string_at_least_32_chars
-CORS_ORIGINS=http://localhost:3000,http://localhost:5173
-
-# Supabase
+# =============================================================================
+# ⚡ Supabase Configuration
+# =============================================================================
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_ANON_KEY=your-anon-key # Optional for backend, but good to have
+TEST_SUPABASE_ON_START=true
+
+# =============================================================================
+# 🔐 Security Configuration
+# =============================================================================
+# Generate a strong secret by running this in terminal: 
+# node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+COOKIE_SECRET=super_secure_random_string_at_least_32_chars
 # SUPABASE_JWT_SECRET=your-jwt-secret (Optional for Local Verification)
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
 ### 4. Run Locally
@@ -121,6 +135,33 @@ npm run dev
 # Production Mode (File Logs + Cluster Optimization)
 npm start
 ```
+
+---
+
+## 🔌 Frontend Integration Guide
+
+Since Core-X uses **stateless CSRF protection**, your frontend client (React, Vue, etc.) must include the CSRF token in the headers of mutative requests (POST, PUT, DELETE).
+
+### Using Axios?
+It's handled automatically if configured correctly:
+
+```javascript
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:5000',
+  withCredentials: true, // IMPORTANT: Allows cookies to be sent/received
+  xsrfCookieName: 'csrf_token', // The name of the cookie sent by Core-X
+  xsrfHeaderName: 'X-CSRF-Token', // The header Core-X expects
+});
+
+export default api;
+```
+
+### How the handshake works:
+1.  On the first visit, make a GET request (e.g., to `/api/health` or `/auth/me`).
+2.  **Core-X** will set the `csrf_token` cookie.
+3.  **Axios** reads this cookie and attaches it to the `X-CSRF-Token` header for all subsequent requests.
 
 ---
 
