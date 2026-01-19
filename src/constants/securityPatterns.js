@@ -11,7 +11,7 @@ export const SECURITY_PATTERNS = {
   // 1. SQL Injection (Classic & Blind)
   // ---------------------------------------------------------------------------
   SQL_INJECTION: {
-    pattern: /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|EXEC|TRUNCATE|CREATE|REPLACE|GRANT|REVOKE)\b)|(--)|(;|\/\*|\*\/)/i,
+    pattern: /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|EXEC|TRUNCATE|CREATE|REPLACE|GRANT|REVOKE)\b\s+([\w*]|[(`'"]))/i,
     severity: 'CRITICAL',
     description: 'SQL Injection Attempt (Standard Keywords)',
   },
@@ -35,7 +35,7 @@ export const SECURITY_PATTERNS = {
     description: 'XSS Attack (Script Tag)',
   },
   XSS_EVENTS: {
-    pattern: /\b(on\w+)\s*=/gi,
+    pattern: /\b(on(error|load|click|mouseover|mouseout|keydown|keyup|submit|change|focus|blur))\s*=/gi,
     severity: 'HIGH',
     description: 'XSS Attack (Event Handlers)',
   },
@@ -54,7 +54,7 @@ export const SECURITY_PATTERNS = {
   // 3. Node.js Specific Attacks (Important!)
   // ---------------------------------------------------------------------------
   PROTOTYPE_POLLUTION: {
-    pattern: /(__proto__|constructor|prototype)/g,
+    pattern: /("|')?(__proto__|constructor|prototype)("|')?\s*:/g,
     severity: 'CRITICAL',
     description: 'Node.js Prototype Pollution Attempt',
   },
@@ -63,7 +63,9 @@ export const SECURITY_PATTERNS = {
   // 4. Command Injection (OS Level)
   // ---------------------------------------------------------------------------
   COMMAND_INJECTION: {
-    pattern: /(;|\||`|\$\(|\&\&|>>|>|<)/g,
+    // Removed common chars like > < | ; unless strictly needed context.
+    // Focusing on explicit shell usage or sequences
+    pattern: /(\$\(|`|\|\||&&|\/bin\/sh|\/bin\/bash|cmd\.exe)/g,
     severity: 'CRITICAL',
     description: 'OS Command Injection Attempt',
   },
@@ -81,7 +83,7 @@ export const SECURITY_PATTERNS = {
   // 6. NoSQL Injection (For JSONB in Postgres or MongoDB)
   // ---------------------------------------------------------------------------
   NOSQL_INJECTION: {
-    pattern: /(\$where|\$ne|\$gt|\$lt|\$or|\$in|\$regex)/g,
+    pattern: /(\$where|\$ne|\$gt|\$lt|\$or|\$in|\$regex)\s*:/g,
     severity: 'HIGH',
     description: 'NoSQL Injection Attempt',
   },
