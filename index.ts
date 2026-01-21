@@ -13,8 +13,13 @@ const validateEnv = () => {
   const REQUIRED_VARS = [
     'NODE_ENV',
     'PORT',
+    'SERVICE_NAME',
+    'LOG_LEVEL',
+    'ENABLE_CONSOLE_LOGS',
     'SUPABASE_URL',
     'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_ANON_KEY',
+    'TEST_SUPABASE_ON_START',
     'COOKIE_SECRET',
     'WORKERS_COUNT',
     // 'SUPABASE_JWT_SECRET' // Not strictly required if using Cloud Auth

@@ -17,7 +17,7 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
     persistSession: false,
   },
   global: {
-    headers: { 'x-my-service': 'Core-X-Backend' },
+    headers: { 'x-my-service': process.env.SERVICE_NAME || 'Core-X-Backend' },
   },
 });
 
