@@ -122,7 +122,13 @@ TEST_SUPABASE_ON_START=true
 # node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 COOKIE_SECRET=super_secure_random_string_at_least_32_chars
 # SUPABASE_JWT_SECRET=your-jwt-secret (Optional for Local Verification)
+# SUPABASE_JWT_SECRET=your-jwt-secret (Optional for Local Verification)
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+
+# =============================================================================
+# 🚀 Cluster Configuration
+# =============================================================================
+WORKERS_COUNT=full # 'full' for all cores, or specific number (e.g. 2)
 ```
 
 ### 4. Development & Production

@@ -5,7 +5,8 @@ import { logger } from './src/config/logger.js';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const numCPUs = os.cpus().length;
-const desiredWorkers = parseInt(process.env.WORKERS_COUNT || String(numCPUs), 10);
+const requestedWorkers = process.env.WORKERS_COUNT || 'full';
+const desiredWorkers = requestedWorkers === 'full' ? numCPUs : parseInt(requestedWorkers, 10);
 const MAX_RESTARTS = 10;
 let restartCount = 0;
 const validateEnv = () => {
@@ -50,7 +51,7 @@ if (cluster.isPrimary) {
   };
 
   spawnWorkers();
- cluster.on('exit', (worker: Worker, code: number, signal: string) => {
+  cluster.on('exit', (worker: Worker, code: number, signal: string) => {
     restartCount++;
     logger.warn(
       `[Cluster] ⚠️ Worker ${worker.process.pid} died (Code: ${code}, Signal: ${signal}). ` +
