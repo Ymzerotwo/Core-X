@@ -1,32 +1,33 @@
+import { Response, Request } from 'express';
 import { DEFAULT_MESSAGES } from '../constants/responseCodes.js';
 
-/**
- * @param {Object} res - The Express response object.
- * @param {Object} req - The Express request object (used to extract Request ID).
- * @param {Number} statusCode - HTTP status code.
- * @param {String} responseKey - The application specific key (e.g., 'USER_CREATED').
- * @param {Object|Array|null} data - The payload to return to the client.
- * @param {Object|null} pagination - Optional pagination metadata (page, limit, total).
- * @param {Object|Error|null} errorDetails - Internal error details for debugging.
- * @returns {Object} Express JSON response.
- */
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+}
+
+interface ErrorDetails {
+  message?: string;
+  stack?: string;
+  [key: string]: any;
+}
+
 export const sendResponse = (
-  res,
-  req,
-  statusCode,
-  responseKey,
-  data = null,
-  pagination = null,
-  errorDetails = null
+  res: Response,
+  req: Request,
+  statusCode: number,
+  responseKey: string,
+  data: any = null,
+  pagination: Pagination | null = null,
+  errorDetails: ErrorDetails | null | unknown = null
 ) => {
   const isSuccess = statusCode >= 200 && statusCode < 300;
   const message = DEFAULT_MESSAGES[responseKey] || responseKey;
-
-  const meta = {
+  const meta: any = {
     requestId: req.id || 'unknown-id',
     timestamp: new Date().toISOString(),
   };
-
   if (pagination) {
     meta.pagination = {
       page: pagination.page,
@@ -36,8 +37,7 @@ export const sendResponse = (
     };
   }
 
-
-  const response = {
+  const response: any = {
     success: isSuccess,
     code: statusCode,        // HTTP Status (e.g., 200, 404)
     slug: responseKey,       // Application Code for Frontend i18n (Renamed from errorCode)
@@ -47,13 +47,13 @@ export const sendResponse = (
   };
 
   if (errorDetails && process.env.NODE_ENV === 'development') {
+    const err = errorDetails as ErrorDetails;
     response.debug = {
-      error_message: errorDetails.message || errorDetails,
-      stack: errorDetails.stack || undefined,
-      raw: errorDetails // sometimes helpful to see the full raw object
+      error_message: err.message || err,
+      stack: err.stack || undefined,
+      raw: err
     };
   }
-
   return res.status(statusCode).json(response);
 };
 /*

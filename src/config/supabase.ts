@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { logger } from './logger.js';
-
 dotenv.config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -32,7 +31,7 @@ export const testSupabaseConnection = async () => {
     if (error) throw error;
     logger.info('[Supabase] 🚀 Connection successful (Admin Privileges Verified)');
     return true;
-  } catch (err) {
+  } catch (err: any) {
     logger.error('[Supabase] Connection test failed', { error: err.message });
     return false;
   }

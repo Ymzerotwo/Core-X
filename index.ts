@@ -1,15 +1,13 @@
 import 'dotenv/config';
-import cluster from 'cluster';
+import cluster, { Worker } from 'cluster';
 import os from 'os';
 import { logger } from './src/config/logger.js';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const numCPUs = os.cpus().length;
-const desiredWorkers = parseInt(process.env.WORKERS_COUNT || numCPUs, 10);
-
+const desiredWorkers = parseInt(process.env.WORKERS_COUNT || String(numCPUs), 10);
 const MAX_RESTARTS = 10;
 let restartCount = 0;
-
 const validateEnv = () => {
   const REQUIRED_VARS = [
     'NODE_ENV',
@@ -19,9 +17,7 @@ const validateEnv = () => {
     'COOKIE_SECRET',
     // 'SUPABASE_JWT_SECRET' // Not strictly required if using Cloud Auth
   ];
-
   const missingVars = REQUIRED_VARS.filter(key => !process.env[key]);
-
   if (missingVars.length > 0) {
     logger.error('\n❌ CRITICAL ERROR: Missing Required Environment Variables!');
     logger.error('-------------------------------------------------------');
@@ -39,9 +35,9 @@ if (cluster.isPrimary) {
   logger.info(`[Cluster] 🖥️  Detected ${numCPUs} CPU cores → Forking ${desiredWorkers} workers sequentially...`);
   const spawnWorkers = async () => {
     for (let i = 0; i < desiredWorkers; i++) {
-      await new Promise((resolve) => {
+      await new Promise<void>((resolve) => {
         const worker = cluster.fork();
-        const messageHandler = (msg) => {
+        const messageHandler = (msg: string) => {
           if (msg === 'READY') {
             worker.off('message', messageHandler);
             resolve();
@@ -54,7 +50,7 @@ if (cluster.isPrimary) {
   };
 
   spawnWorkers();
-  cluster.on('exit', (worker, code, signal) => {
+ cluster.on('exit', (worker: Worker, code: number, signal: string) => {
     restartCount++;
     logger.warn(
       `[Cluster] ⚠️ Worker ${worker.process.pid} died (Code: ${code}, Signal: ${signal}). ` +
@@ -79,7 +75,6 @@ if (cluster.isPrimary) {
       logger.error(`[Worker] ❌ Failed to start worker ${process.pid}`, err);
       process.exit(1);
     });
-
   process.on('SIGTERM', () => {
     logger.info(`[Worker] 🛑 ${process.pid} received SIGTERM. Shutting down gracefully...`);
     setTimeout(() => {

@@ -1,3 +1,5 @@
+import { Request, Response, NextFunction } from 'express';
+import { User } from '@supabase/supabase-js';
 import supabaseAdmin from '../config/supabase.js';
 import { setCookie, clearCookie, rotateCsrfToken } from './csrf.middleware.js';
 import { HTTP_CODES, RESPONSE_KEYS } from '../constants/responseCodes.js';
@@ -5,7 +7,7 @@ import { sendResponse } from '../utils/responseHandler.js';
 import { logger, logThreat } from '../config/logger.js';
 // import jwt from 'jsonwebtoken'; // Uncomment if using Local Verification
 
-const standardizeUser = (source, isLocal = false) => {
+const standardizeUser = (source: any, isLocal = false): User => {
     if (isLocal) {
         return {
             id: source.sub,
@@ -15,7 +17,7 @@ const standardizeUser = (source, isLocal = false) => {
             user_metadata: source.user_metadata || {},
             aud: source.aud,
             created_at: source.created_at || new Date().toISOString()
-        };
+        } as User;
     }
     return {
         id: source.id,
@@ -25,19 +27,17 @@ const standardizeUser = (source, isLocal = false) => {
         user_metadata: source.user_metadata || {},
         aud: source.aud,
         created_at: source.created_at
-    };
+    } as User;
 };
 
-const coreAuth = async (req, res, next) => {
+const coreAuth = async (req: Request, res: Response, next: NextFunction) => {
     try {
         let accessToken = req.signedCookies['access_token'];
         const refreshToken = req.signedCookies['refresh_token'];
         let shouldRefresh = false;
-
         if (!accessToken && !refreshToken) {
             return sendResponse(res, req, HTTP_CODES.UNAUTHORIZED, RESPONSE_KEYS.UNAUTHORIZED_ACCESS);
         }
-
         if (accessToken) {
             // ☁️ Cloud Verification (Default)
             const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
@@ -59,11 +59,9 @@ const coreAuth = async (req, res, next) => {
                 clearCookie(res, 'refresh_token');
                 return sendResponse(res, req, HTTP_CODES.UNAUTHORIZED, RESPONSE_KEYS.TOKEN_EXPIRED);
             }
-
             const { data, error: refreshError } = await supabaseAdmin.auth.refreshSession({
                 refresh_token: refreshToken
             });
-
             if (refreshError || !data.session) {
                 clearCookie(res, 'access_token');
                 clearCookie(res, 'refresh_token');
@@ -76,27 +74,94 @@ const coreAuth = async (req, res, next) => {
                 return sendResponse(res, req, HTTP_CODES.UNAUTHORIZED, RESPONSE_KEYS.TOKEN_EXPIRED);
             }
             const { access_token, refresh_token: newRefreshToken, expires_in, user } = data.session;
-
             const accessTokenMaxAge = expires_in ? expires_in * 1000 : 3600000;
             const refreshTokenMaxAge = 7 * 24 * 60 * 60 * 1000;
-
             setCookie(res, 'access_token', access_token, accessTokenMaxAge);
             setCookie(res, 'refresh_token', newRefreshToken, refreshTokenMaxAge);
             rotateCsrfToken(res);
-
             req.user = standardizeUser(user, false);
             next();
         }
 
-    } catch (globalError) {
+    } catch (globalError: any) {
         logger.error('Auth Middleware Critical Error', { error: globalError.message });
         return sendResponse(res, req, HTTP_CODES.INTERNAL_SERVER_ERROR, RESPONSE_KEYS.SERVER_ERROR, null, null, globalError);
     }
 };
 
-export const requireAuth = (req, res, next) => coreAuth(req, res, next);
-// Strict auth is same as normal auth in Cloud-only mode
-//export const requireStrictAuth = (req, res, next) => coreAuth(req, res, next);
+export const requireAuth = (req: Request, res: Response, next: NextFunction) => coreAuth(req, res, next);
+
+/*
+ * 🏠 Local Verification (Inactive)
+ * Use this to verify tokens locally without calling Supabase API (saves latency/quota).
+ * Requires `SUPABASE_JWT_SECRET` in .env.
+ */
+/*
+const localAuth = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const accessToken = req.signedCookies['access_token'];
+        const refreshToken = req.signedCookies['refresh_token'];
+        const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+        
+        if (!jwtSecret) {
+            throw new Error('SUPABASE_JWT_SECRET is missing in environment variables');
+        }
+
+        if (!accessToken && !refreshToken) {
+            return sendResponse(res, req, HTTP_CODES.UNAUTHORIZED, RESPONSE_KEYS.UNAUTHORIZED_ACCESS);
+        }
+
+        if (accessToken) {
+            try {
+                // To use this: uncomment 'import jwt from 'jsonwebtoken';' at the top
+                const decoded = jwt.verify(accessToken, jwtSecret) as jwt.JwtPayload;
+                req.user = standardizeUser(decoded, true);
+                return next();
+            } catch (err) {
+                // Token invalid/expired, proceed to refresh
+            }
+        }
+
+        // Refresh Logic (Same as Cloud)
+        if (!refreshToken) {
+             clearCookie(res, 'access_token');
+             clearCookie(res, 'refresh_token');
+             return sendResponse(res, req, HTTP_CODES.UNAUTHORIZED, RESPONSE_KEYS.TOKEN_EXPIRED);
+        }
+
+        // We still need Supabase Admin to refresh the session (Refreshes are always online)
+        const { data, error: refreshError } = await supabaseAdmin.auth.refreshSession({
+            refresh_token: refreshToken
+        });
+
+        if (refreshError || !data.session) {
+            clearCookie(res, 'access_token');
+            clearCookie(res, 'refresh_token');
+            return sendResponse(res, req, HTTP_CODES.UNAUTHORIZED, RESPONSE_KEYS.TOKEN_EXPIRED);
+        }
+
+        const { access_token, refresh_token: newRefreshToken, expires_in, user } = data.session;
+        
+        // Update Cookies
+        setCookie(res, 'access_token', access_token, (expires_in || 3600) * 1000);
+        setCookie(res, 'refresh_token', newRefreshToken, 7 * 24 * 60 * 60 * 1000);
+        rotateCsrfToken(res);
+
+        req.user = standardizeUser(user, false); // User from refresh is standard Supabase User
+        next();
+
+    } catch (error: any) {
+        logger.error('Local Auth Error', { error: error.message });
+        return sendResponse(res, req, HTTP_CODES.INTERNAL_SERVER_ERROR, RESPONSE_KEYS.SERVER_ERROR);
+    }
+};
+*/
+
+/*
+ * 🏠 Local Auth Export (Inactive)
+ * Uncomment below to use local verification strategy
+ */
+// export const requireLocalAuth = (req: Request, res: Response, next: NextFunction) => localAuth(req, res, next);
 
 /*
  * ==============================================================================

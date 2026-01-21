@@ -1,13 +1,12 @@
+import { Request, Response, NextFunction } from 'express';
 import { SecurityValidator } from '../utils/securityValidator.js';
 import { logThreat } from '../config/logger.js';
 import { sendResponse } from '../utils/responseHandler.js';
 import { HTTP_CODES, RESPONSE_KEYS } from '../constants/responseCodes.js';
 
-
-export const securityMiddleware = (req, res, next) => {
+export const securityMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const userAgent = req.headers['user-agent'] || '';
   const uaCheck = SecurityValidator.scan(userAgent);
-
   if (!uaCheck.isSafe && uaCheck.action === 'BLOCK') {
     logThreat({
       event: 'SUSPICIOUS_USER_AGENT',
@@ -17,9 +16,6 @@ export const securityMiddleware = (req, res, next) => {
     });
     return sendResponse(res, req, HTTP_CODES.FORBIDDEN, RESPONSE_KEYS.PERMISSION_DENIED, null, null, { reason: 'Suspicious Client via WAF' });
   }
-
-
-
   next();
 };
 

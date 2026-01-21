@@ -1,28 +1,27 @@
-import { z } from 'zod';
+import { z, ZodSchema } from 'zod';
+import { Request, Response, NextFunction } from 'express';
 import { sendResponse } from '../utils/responseHandler.js';
 import { HTTP_CODES, RESPONSE_KEYS } from '../constants/responseCodes.js';
 import { logThreat } from '../config/logger.js';
 
-export const validate = (schema) => (req, res, next) => {
+export const validate = (schema: ZodSchema<any>) => (req: Request, res: Response, next: NextFunction) => {
     try {
         schema.parse({
             body: req.body,
             query: req.query,
             params: req.params,
         });
-
         next();
     } catch (error) {
         if (error instanceof z.ZodError) {
-            const zodErrors = error.errors || error.issues || [];
+            const zodErrors = error.issues;
 
-
-            const isMalicious = zodErrors.some(err => err.message === "MALICIOUS_INPUT_DETECTED");
+            const isMalicious = zodErrors.some((err: z.ZodIssue) => err.message === "MALICIOUS_INPUT_DETECTED");
 
             if (isMalicious) {
                 const threatDetails = zodErrors
-                    .filter(err => err.message === "MALICIOUS_INPUT_DETECTED")
-                    .map(err => ({ field: err.path.join('.'), input: "HIDDEN_FOR_SECURITY" }));
+                    .filter((err: z.ZodIssue) => err.message === "MALICIOUS_INPUT_DETECTED")
+                    .map((err: z.ZodIssue) => ({ field: err.path.join('.'), input: "HIDDEN_FOR_SECURITY" }));
 
                 logThreat({
                     event: 'MALICIOUS_INPUT_BLOCKED',
@@ -42,13 +41,11 @@ export const validate = (schema) => (req, res, next) => {
                     { reason: 'Security Policy Violation' }
                 );
             }
-
-            const formattedErrors = zodErrors.reduce((acc, curr) => {
-                const field = curr.path[1] || curr.path[0];
+            const formattedErrors = zodErrors.reduce((acc: Record<string, string>, curr: z.ZodIssue) => {
+                const field = String(curr.path[1] || curr.path[0]);
                 acc[field] = curr.message;
                 return acc;
             }, {});
-
             return sendResponse(
                 res,
                 req,

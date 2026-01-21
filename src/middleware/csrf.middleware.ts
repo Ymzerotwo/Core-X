@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { Request, Response, NextFunction, CookieOptions } from 'express';
 import { HTTP_CODES, RESPONSE_KEYS } from '../constants/responseCodes.js';
 import { sendResponse } from '../utils/responseHandler.js';
 import { logThreat } from '../config/logger.js';
@@ -9,16 +10,16 @@ const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || '')
     .map(o => o.trim())
     .filter(Boolean);
 
-export const cookieOptions = {
+export const cookieOptions: CookieOptions = {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'Lax',
+    sameSite: 'lax', // Typed as 'lax' | 'strict' | 'none' | boolean
     path: '/',
     signed: true,
-    priority: 'High',
+    priority: 'high', // Note: priority is not standard in types for some versions, but supported by express res.cookie options usually as extension or standard
 };
 
-export const setCookie = (res, name, value, maxAgeMs) => {
+export const setCookie = (res: Response, name: string, value: string, maxAgeMs?: number) => {
     const options = { ...cookieOptions };
     if (maxAgeMs) {
         options.maxAge = maxAgeMs;
@@ -26,38 +27,33 @@ export const setCookie = (res, name, value, maxAgeMs) => {
     res.cookie(name, value, options);
 };
 
-export const clearCookie = (res, name) => {
+export const clearCookie = (res: Response, name: string) => {
     res.clearCookie(name, cookieOptions);
 };
 
-export const rotateCsrfToken = (res) => {
+export const rotateCsrfToken = (res: Response) => {
     const token = crypto.randomBytes(32).toString('hex');
-
-    const csrfCookieOptions = {
+    const csrfCookieOptions: CookieOptions = {
         ...cookieOptions,
         httpOnly: false,
         signed: false,
     };
-
     res.cookie('csrf_token', token, {
         ...csrfCookieOptions,
         maxAge: 24 * 60 * 60 * 1000
     });
-
     res.setHeader('X-CSRF-Token', token);
     return token;
 };
 
-export const csrfProtection = (req, res, next) => {
+export const csrfProtection = (req: Request, res: Response, next: NextFunction) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method) || process.env.NODE_ENV === 'test') {
         return next();
     }
-
-    const cookieToken = req.cookies.csrf_token;
+    const cookieToken = req.cookies?.csrf_token;
     const headerToken = req.headers['x-csrf-token'];
     const bodyToken = req.body?._csrf;
     const submittedToken = headerToken || bodyToken;
-
     if (!cookieToken || !submittedToken || cookieToken !== submittedToken) {
         logThreat({
             event: 'CSRF_TOKEN_MISMATCH',
@@ -78,11 +74,9 @@ export const csrfProtection = (req, res, next) => {
             { reason: 'Invalid or Missing CSRF Token' }
         );
     }
-
     const origin = req.headers['origin'];
     const referer = req.headers['referer'];
     const source = origin || referer;
-
     if (isProduction && !source) {
         logThreat({ event: 'CSRF_MISSING_SOURCE', ip: req.ip, severity: 'MEDIUM' });
         return sendResponse(
@@ -95,7 +89,6 @@ export const csrfProtection = (req, res, next) => {
             { reason: 'Missing Origin/Referer' }
         );
     }
-
     if (source) {
         try {
             const sourceUrl = new URL(source);
@@ -137,7 +130,6 @@ export const csrfProtection = (req, res, next) => {
             );
         }
     }
-
     next();
 };
 

@@ -7,6 +7,7 @@ import chalk from 'chalk';
 const logsDirectory = path.join(process.cwd(), 'logs');
 const isProduction = process.env.NODE_ENV === 'production';
 const serviceName = process.env.SERVICE_NAME || process.env.npm_package_name || 'Core-X-Service';
+const securityLogsDir = path.join(logsDirectory, 'security');
 
 try {
   if (!fs.existsSync(logsDirectory)) {
@@ -38,10 +39,13 @@ const consoleFormat = winston.format.combine(
     else if (level === 'info') levelColored = chalk.green(levelColored);
     else if (level === 'http') levelColored = chalk.magenta(levelColored);
     else if (level === 'debug') levelColored = chalk.blue(levelColored);
-
     return `${chalk.gray(timestamp)} [${chalk.cyan(service)}] ${levelColored}: ${message} ${stack ? '\n' + chalk.red(stack) : ''}`;
   })
 );
+
+interface AugmentedLogger extends winston.Logger {
+  stream: any;
+}
 
 const logger = winston.createLogger({
   levels: winston.config.npm.levels,
@@ -59,7 +63,6 @@ const logger = winston.createLogger({
       handleExceptions: true,
       handleRejections: true,
     }),
-
     new DailyRotateFile({
       filename: path.join(logsDirectory, 'combined-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
@@ -69,8 +72,7 @@ const logger = winston.createLogger({
     }),
   ],
   exitOnError: false,
-});
-
+}) as AugmentedLogger;
 
 if (!isProduction || process.env.ENABLE_CONSOLE_LOGS === 'true') {
   logger.add(
@@ -81,15 +83,11 @@ if (!isProduction || process.env.ENABLE_CONSOLE_LOGS === 'true') {
   console.log(chalk.green(`[Logger] ✅ Console logging enabled (Level: ${logger.level})`));
 }
 
-
 logger.stream = {
-  write: (message) => {
+  write: (message: string) => {
     logger.http(message.trim());
   },
 };
-
-
-const securityLogsDir = path.join(logsDirectory, 'security');
 
 export const securityLogger = winston.createLogger({
   format: fileFormat,
@@ -114,8 +112,7 @@ export const securityLogger = winston.createLogger({
   ],
 });
 
-
-export const logThreat = (event) => {
+export const logThreat = (event: Record<string, any>) => {
   securityLogger.log({
     level: event.severity === 'CRITICAL' || event.severity === 'HIGH' ? 'warn' : 'info',
     message: event.description || 'Security Event',
@@ -155,4 +152,4 @@ export { logger };
  * 🚀 Usage:
  * - Direct: `logger.info('User logged in');`
  * - Security: `logThreat({ event: 'SQLI', severity: 'CRITICAL', ip: '1.2.3.4' });`
- */
+ * */

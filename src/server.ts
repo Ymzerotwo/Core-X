@@ -3,12 +3,12 @@ import 'dotenv/config';
 import app from './app.js';
 import { logger } from './config/logger.js';
 import { testSupabaseConnection } from './config/supabase.js';
+type Environment = 'development' | 'production' | 'test';
 
-const PORT = process.env.PORT || 5000;
-const ENV = process.env.NODE_ENV || 'development';
-
+const PORT: number = parseInt(process.env.PORT || '5000', 10);
+const ENV: Environment = (process.env.NODE_ENV as Environment) || 'development';
 const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
-const missing = requiredEnv.filter(key => !process.env[key]);
+const missing = requiredEnv.filter((key) => !process.env[key]);
 
 if (missing.length > 0) {
   logger.error('❌ CRITICAL: Missing required environment variables:', missing.join(', '));
@@ -18,7 +18,6 @@ if (missing.length > 0) {
 const startServer = async () => {
   try {
     const dbConnected = await testSupabaseConnection();
-
     if (!dbConnected) {
       if (ENV === 'production') {
         logger.warn('⚠️ Starting server without DB connection (Risk Mode - Production)');
@@ -27,35 +26,29 @@ const startServer = async () => {
         process.exit(1);
       }
     }
-
     const server = http.createServer(app);
-
     server.listen(PORT, () => {
       const modeIcon = ENV === 'production' ? '🏭' : '🛠️';
       logger.info(`🚀 Server running on port ${PORT} [${ENV} ${modeIcon}]`);
       logger.info(`   Local:  http://localhost:${PORT}`);
       logger.info(`   Health: http://localhost:${PORT}/health`);
     });
-
-    const gracefulShutdown = (signal) => {
+    const gracefulShutdown = (signal: string) => {
       logger.info(`\n${signal} received. Initiating graceful shutdown...`);
-
       server.close(() => {
         logger.info('HTTP server closed. Exiting process...');
         process.exit(0);
       });
-
       setTimeout(() => {
         logger.error('Could not close connections in time → Force Exit');
         process.exit(1);
       }, 10000);
     };
-
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
   } catch (err) {
-    logger.error('❌ FATAL: Server startup failed:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    logger.error('❌ FATAL: Server startup failed:', errorMessage);
     process.exit(1);
   }
 };
@@ -64,7 +57,7 @@ process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Rejection:', { promise, reason });
 });
 
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', (error: Error) => {
   logger.error('Uncaught Exception:', error);
   process.exit(1);
 });
@@ -101,4 +94,4 @@ startServer();
  *
  * 🚀 Usage:
  * - `npm start` or `node src/server.js`
- */
+ */ 

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction, Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import hpp from 'hpp';
@@ -13,22 +13,20 @@ import { csrfProtection } from './middleware/csrf.middleware.js';
 import { sendResponse } from './utils/responseHandler.js';
 import { HTTP_CODES, RESPONSE_KEYS } from './constants/responseCodes.js';
 
-
-const app = express();
+const app: Application = express();
 const isDevelopment = process.env.NODE_ENV === 'development';
 const isProduction = process.env.NODE_ENV === 'production';
-
 
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
-app.use((req, res, next) => {
-  req.id = req.headers['x-request-id'] || `req_${uuidv4().split('-')[0]}`;
+app.use((req: Request, res: Response, next: NextFunction) => {
+  req.id = req.headers['x-request-id'] as string || `req_${uuidv4().split('-')[0]}`;
   res.setHeader('X-Request-ID', req.id);
   next();
 });
 
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   const startTime = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - startTime;
@@ -100,8 +98,8 @@ const generalLimiter = rateLimit({
   message: { success: false, code: 429, message: 'Too many requests' },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => ipKeyGenerator(req),
-  skip: (req) => req.path === '/health'
+  keyGenerator: (req: Request) => ipKeyGenerator(req.ip || '127.0.0.1'),
+  skip: (req: Request) => req.path === '/health'
 });
 app.use('/api', generalLimiter);
 app.use(cookieParser(process.env.COOKIE_SECRET));
@@ -110,21 +108,14 @@ app.use(express.urlencoded({ limit: '10kb', extended: true }));
 app.use(hpp());
 app.use(securityMiddleware);
 app.use(csrfProtection);
-
-
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'OK', service: process.env.SERVICE_NAME });
 });
-
 // app.use('/api/v1', routes);
-
-
-app.use((req, res) => {
+app.use((req: Request, res: Response) => {
   return sendResponse(res, req, HTTP_CODES.NOT_FOUND, RESPONSE_KEYS.NOT_FOUND);
 });
-
-
-app.use((err, req, res, next) => {
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   if (err.message === 'Not allowed by CORS') {
     return sendResponse(res, req, HTTP_CODES.FORBIDDEN, RESPONSE_KEYS.UNAUTHORIZED_ACCESS);
   }
@@ -137,7 +128,6 @@ app.use((err, req, res, next) => {
     requestId: req.id,
     url: req.originalUrl
   });
-
   return sendResponse(
     res,
     req,

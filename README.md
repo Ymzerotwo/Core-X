@@ -25,7 +25,7 @@ Instead of writing a backend from scratch, **Core-X** provides a robust, secure,
 
 ## 🛠️ Tech Stack
 
-*   **Runtime**: Node.js (ES Modules)
+*   **Runtime**: Node.js (TypeScript)
 *   **Framework**: Express.js
 *   **Database & Auth**: Supabase (PostgreSQL)
 *   **Validation**: Zod
@@ -38,42 +38,41 @@ Instead of writing a backend from scratch, **Core-X** provides a robust, secure,
 
 ```bash
 core-x/
+├── dist/               # Compiled JavaScript (Production)
 ├── logs/
 ├── src/
 │   ├── config/
-│   │   ├── logger.js
-│   │   └── supabase.js
+│   │   ├── logger.ts
+│   │   └── supabase.ts
 │   ├── constants/
-│   │   ├── responseCodes.js
-│   │   ├── securityPatterns.js
-│   │   └── validationMessages.js
+│   │   ├── responseCodes.ts
+│   │   ├── securityPatterns.ts
+│   │   └── validationMessages.ts
 │   ├── controllers/        # (Coming Soon)
 │   ├── db/                 # (Coming Soon)
 │   ├── middleware/
-│   │   ├── auth.middleware.js
-│   │   ├── csrf.middleware.js
-│   │   ├── security.middleware.js
-│   │   └── validate.js
+│   │   ├── auth.middleware.ts
+│   │   ├── csrf.middleware.ts
+│   │   ├── security.middleware.ts
+│   │   └── validate.ts
 │   ├── routes/             # (Coming Soon)
 │   ├── services/           # (Coming Soon)
 │   ├── utils/
-│   │   ├── responseHandler.js
-│   │   └── securityValidator.js
+│   │   ├── responseHandler.ts
+│   │   └── securityValidator.ts
 │   ├── validations/
-│   │   └── common.js
-│   ├── app.js
-│   └── server.js
+│   │   └── common.ts
+│   ├── app.ts
+│   └── server.ts
 ├── tests/
-│   ├── logger.test.js
-│   ├── responses.test.js
-│   └── security.test.js
 ├── .env
 ├── .env.example
 ├── .gitignore
-├── index.js
+├── index.ts
 ├── LICENSE
 ├── package-lock.json
 ├── package.json
+├── tsconfig.json
 └── README.md
 ```
 
@@ -126,15 +125,27 @@ COOKIE_SECRET=super_secure_random_string_at_least_32_chars
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
-### 4. Run Locally
+### 4. Development & Production
 
+Core-X is built with **TypeScript** for robustness but runs as **JavaScript** in production.
+
+#### Development Mode (TypeScript)
+Runs the project directly using `tsx` with hot reload.
 ```bash
-# Development Mode (Console Logs + Hot Reload)
 npm run dev
-
-# Production Mode (File Logs + Cluster Optimization)
-npm start
 ```
+
+#### Production Build (Generate JavaScript)
+To generate the production-ready JavaScript version:
+1.  **Compile**: Run the build script to transpile TS to JS in the `dist/` folder.
+    ```bash
+    npm run build
+    ```
+2.  **Run**: Start the optimized production server (Cluster Mode support).
+    ```bash
+    npm start
+    ```
+    > Note: This runs `node dist/index.js`. Ensure you have built the project first!
 
 ---
 

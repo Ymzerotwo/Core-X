@@ -1,22 +1,43 @@
 import { SECURITY_PATTERNS, SEVERITY_LEVELS } from '../constants/securityPatterns.js';
 
+interface Threat {
+  type: string;
+  severity: string;
+  desc: string;
+}
+
+interface ScanResult {
+  isSafe: boolean;
+  threats: Threat[];
+  riskScore: number;
+  action: string;
+}
+
+interface DeepScanResult {
+  hasThreats: boolean;
+  threats: Threat[];
+  totalRisk: number;
+}
+
 export class SecurityValidator {
   /**
    * Scans input against known threat patterns
    * @param {String} input 
    * @returns Detection Result
    */
-  static scan(input) {
-    if (!input || typeof input !== 'string') return { isSafe: true, threats: [] };
-    const threats = [];
+  static scan(input: string): ScanResult {
+    if (!input || typeof input !== 'string') {
+      return { isSafe: true, threats: [], riskScore: 0, action: 'ALLOW' };
+    }
+    const threats: Threat[] = [];
     let riskScore = 0;
     for (const [key, config] of Object.entries(SECURITY_PATTERNS)) {
-      if (config.pattern.test(input)) {
-        const severityInfo = SEVERITY_LEVELS[config.severity];
+      if ((config as any).pattern.test(input)) {
+        const severityInfo = SEVERITY_LEVELS[(config as any).severity as keyof typeof SEVERITY_LEVELS];
         threats.push({
           type: key,
-          severity: config.severity,
-          desc: config.description
+          severity: (config as any).severity,
+          desc: (config as any).description
         });
         riskScore += severityInfo.score;
         break; // Stop checking other patterns if one is found
@@ -30,7 +51,7 @@ export class SecurityValidator {
     };
   }
 
-  static deepScan(obj, depth = 0, verified = new WeakSet()) {
+  static deepScan(obj: any, depth: number = 0, verified: WeakSet<object> = new WeakSet()): DeepScanResult {
     if (depth > 5) return { hasThreats: false, threats: [], totalRisk: 0 };
     if (!obj || typeof obj !== 'object') {
       if (typeof obj === 'string') {
