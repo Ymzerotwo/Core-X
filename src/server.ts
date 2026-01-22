@@ -31,7 +31,7 @@ const startServer = async () => {
       const modeIcon = ENV === 'production' ? '🏭' : '🛠️';
       logger.info(`🚀 Server running on port ${PORT} [${ENV} ${modeIcon}]`);
       logger.info(`   Local:  http://localhost:${PORT}`);
-      logger.info(`   Health: http://localhost:${PORT}/health`);
+      logger.info(`   Server-status: http://localhost:${PORT}/admin/core-x-state`);
     });
     const gracefulShutdown = (signal: string) => {
       logger.info(`\n${signal} received. Initiating graceful shutdown...`);

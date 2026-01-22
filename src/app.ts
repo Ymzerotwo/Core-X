@@ -12,6 +12,9 @@ import { securityMiddleware } from './middleware/security.middleware.js';
 import { csrfProtection } from './middleware/csrf.middleware.js';
 import { sendResponse } from './utils/responseHandler.js';
 import { HTTP_CODES, RESPONSE_KEYS } from './constants/responseCodes.js';
+import adminRoutes from './routes/admin/admin.routes.js';
+import crypto from 'crypto';
+import stateRoutes from './routes/state/state.routes.js';
 
 const app: Application = express();
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -19,6 +22,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
+app.use(express.static('public'));
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   req.id = req.headers['x-request-id'] as string || `req_${uuidv4().split('-')[0]}`;
@@ -30,7 +34,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   const startTime = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - startTime;
-    if (req.path === '/health') return;
+    if (req.path === '/admin/core-x-state' || req.path === '/state/server-state') return;
     const logData = {
       requestId: req.id,
       method: req.method,
@@ -46,12 +50,17 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.locals.nonce = crypto.randomBytes(16).toString('base64');
+  next();
+});
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", (req, res) => `'nonce-${(res as any).locals.nonce}'`],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "https:", "https://*.supabase.co"],
       connectSrc: ["'self'", "https://*.supabase.co"],
       fontSrc: ["'self'", "data:", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
@@ -99,7 +108,7 @@ const generalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => ipKeyGenerator(req.ip || '127.0.0.1'),
-  skip: (req: Request) => req.path === '/health'
+  skip: (req: Request) => req.path.startsWith('/state/') || req.path.startsWith('/admin/')
 });
 app.use('/api', generalLimiter);
 app.use(cookieParser(process.env.COOKIE_SECRET));
@@ -108,9 +117,8 @@ app.use(express.urlencoded({ limit: '10kb', extended: true }));
 app.use(hpp());
 app.use(securityMiddleware);
 app.use(csrfProtection);
-app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({ status: 'OK', service: process.env.SERVICE_NAME });
-});
+app.use('/admin', adminRoutes);
+app.use('/state', stateRoutes);
 // app.use('/api/v1', routes);
 app.use((req: Request, res: Response) => {
   return sendResponse(res, req, HTTP_CODES.NOT_FOUND, RESPONSE_KEYS.NOT_FOUND);

@@ -55,7 +55,6 @@ if (cluster.isPrimary) {
     }
     logger.info(`[Cluster] ✅ All ${desiredWorkers} workers have started and are fully operational.`);
   };
-
   spawnWorkers();
   cluster.on('exit', (worker: Worker, code: number, signal: string) => {
     restartCount++;
@@ -70,7 +69,6 @@ if (cluster.isPrimary) {
       process.exit(1);
     }
   });
-
 } else {
   logger.info(`[Worker] 🔧 Worker ${process.pid} starting...`);
   import('./src/server.js')
