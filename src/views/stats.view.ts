@@ -41,9 +41,15 @@ export const getStatusPage = (data: {
         </a>
       </li>
       <li class="nav-item">
-        <a href="#" class="nav-link" data-target="auth">
+        <a href="#" class="nav-link" data-target="intrusions">
            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
            Intrusion Attempts
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#" class="nav-link" data-target="banning">
+           <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+           Banning Manager
         </a>
       </li>
     </ul>
@@ -118,16 +124,47 @@ export const getStatusPage = (data: {
           </div>
         </div>
       </div>
+      
+      </div>
     </section>
 
     <!-- Requests Page -->
     <section id="requests" class="page-section">
       <div class="page-header">
-        <h1 class="page-title">Recent Requests</h1>
-        <p class="page-desc">Log of recent HTTP requests handled by the server.</p>
+        <h1 class="page-title">Requests Overview</h1>
+        <p class="page-desc">Detailed statistics of processed requests.</p>
       </div>
-      <div class="log-list" id="requests-log">
-        <div class="log-item" style="justify-content: center; color: var(--server-label);">Waiting for data...</div>
+      
+      <div class="grid">
+        <!-- Total Requests -->
+        <div class="card">
+          <div class="card-title">
+            <span>Total Requests</span>
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+          </div>
+          <div class="metric-value" id="total-req">--</div>
+          <div class="metric-sub">Processed</div>
+        </div>
+
+        <!-- Successful -->
+        <div class="card">
+          <div class="card-title">
+            <span>Successful</span>
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--success, #10B981);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </div>
+          <div class="metric-value" id="success-req">--</div>
+          <div class="metric-sub" style="color: var(--success, #10B981);">2xx / 3xx</div>
+        </div>
+
+        <!-- Failed (Total) -->
+        <div class="card">
+          <div class="card-title">
+             <span>Failed</span>
+             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--danger, #EF4444);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          </div>
+          <div class="metric-value" id="failed-req">--</div>
+          <div class="metric-sub" style="color: var(--danger, #EF4444);">Total Failed</div>
+        </div>
       </div>
     </section>
 
@@ -135,23 +172,150 @@ export const getStatusPage = (data: {
     <section id="errors" class="page-section">
       <div class="page-header">
          <h1 class="page-title">System Errors</h1>
-         <p class="page-desc">Recent application errors and exceptions.</p>
+         <p class="page-desc">Breakdown of client and server errors.</p>
       </div>
+
+      <div class="grid" style="margin-bottom: 2rem;">
+        <!-- Client Errors -->
+        <div class="card">
+          <div class="card-title">
+             <span>Client Errors</span>
+             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--warning, #F59E0B);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          </div>
+          <div class="metric-value" id="client-err">--</div>
+          <div class="metric-sub" style="color: var(--warning, #F59E0B);">4xx Responses</div>
+        </div>
+
+        <!-- System Errors -->
+        <div class="card">
+          <div class="card-title">
+             <span>System Errors</span>
+             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--danger, #EF4444);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </div>
+          <div class="metric-value" id="server-err">--</div>
+          <div class="metric-sub" style="color: var(--danger, #EF4444);">5xx Responses</div>
+        </div>
+      </div>
+
+      <h2 style="margin-bottom: 1rem; font-size: 1.2rem; color: var(--nav-text);">Recent Warnings (4xx)</h2>
+      <div class="log-list" id="warnings-log">
+         <div class="log-item" style="justify-content: center; color: var(--server-label);">No recent warnings logged.</div>
+      </div>
+
+      <h2 style="margin-bottom: 1rem; font-size: 1.2rem; color: var(--nav-text); margin-top: 2rem;">Recent System Logs (5xx)</h2>
       <div class="log-list" id="errors-log">
-         <div class="log-item" style="justify-content: center; color: var(--server-label);">No recent errors logged.</div>
+         <div class="log-item" style="justify-content: center; color: var(--server-label);">No recent system errors logged.</div>
       </div>
     </section>
 
     <!-- Intrusion Attempts Page -->
-    <section id="auth" class="page-section">
+    <section id="intrusions" class="page-section">
       <div class="page-header">
          <h1 class="page-title">Intrusion Attempts</h1>
          <p class="page-desc">Security events and blocked access attempts.</p>
       </div>
-        <div class="log-list" id="security-log">
-         <div class="log-item" style="justify-content: center; color: var(--server-label);">System Secure. No threats detected.</div>
+      
+      <div class="grid">
+        <!-- Intrusions -->
+        <div class="card">
+          <div class="card-title">
+             <span>Intrusions</span>
+             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+          </div>
+          <div class="metric-value" id="intrusions-val">--</div>
+          <div class="metric-sub" style="color: var(--server-label);">Blocked</div>
+        </div>
+      </div>
+
+      <h2 style="margin: 2rem 0 1rem; font-size: 1.2rem; color: var(--nav-text);">Recent Security Events</h2>
+      <div class="table-container" style="background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+             <thead style="background: rgba(0,0,0,0.2); text-align: left;">
+                <tr>
+                    <th style="padding: 1rem; color: var(--nav-text); font-weight: 500;">Time</th>
+                    <th style="padding: 1rem; color: var(--nav-text); font-weight: 500;">Risk</th>
+                    <th style="padding: 1rem; color: var(--nav-text); font-weight: 500;">IP Address</th>
+                    <th style="padding: 1rem; color: var(--nav-text); font-weight: 500;">Identity (User/Token)</th>
+                    <th style="padding: 1rem; color: var(--nav-text); font-weight: 500;">Details</th>
+                </tr>
+             </thead>
+             <tbody id="intrusions-log">
+                <tr><td colspan="5" style="padding: 2rem; text-align: center; color: var(--nav-text);">Loading security logs...</td></tr>
+             </tbody>
+          </table>
       </div>
     </section>
+
+    <!-- Banning Manager Page -->
+    <section id="banning" class="page-section">
+      <div class="page-header">
+        <h1 class="page-title">Banning Management</h1>
+        <p class="page-desc">Manage system-wide blocks for IPs, Users, and Tokens.</p>
+      </div>
+
+      <!-- Controls -->
+      <div class="ban-controls">
+          <div class="ban-header">
+              <h3>Create New Ban</h3>
+              <p>Add a new security rule to block access.</p>
+          </div>
+          <form id="banForm" class="ban-form-grid">
+              <div class="form-group">
+                  <label class="input-label">Type</label>
+                  <select id="banType" class="form-control">
+                      <option value="ip">IP Address</option>
+                      <option value="user">User ID</option>
+                      <option value="token">Token Signature</option>
+                  </select>
+              </div>
+              <div class="form-group" style="flex: 2; min-width: 200px;">
+                  <label class="input-label">Target Identifier</label>
+                  <input type="text" id="banValue" class="form-control" placeholder="e.g. 192.168.1.1" required>
+              </div>
+              <div class="form-group" style="flex: 2; min-width: 200px;">
+                  <label class="input-label">Reason</label>
+                  <input type="text" id="banReason" class="form-control" placeholder="Optional reason for audit logs">
+              </div>
+              <div class="form-group action-group">
+                  <label class="input-label">&nbsp;</label>
+                  <button type="submit" class="btn btn-primary btn-block">
+                      <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                      Ban Target
+                  </button>
+              </div>
+          </form>
+      </div>
+
+      <!-- Lists -->
+      <div class="card">
+          <div class="tab-nav">
+              <button class="tab-btn active" data-tab="ips">Blacklisted IPs</button>
+              <button class="tab-btn" data-tab="users">Banned Users</button>
+              <button class="tab-btn" data-tab="tokens">Revoked Tokens</button>
+          </div>
+
+          <div id="ips-tab" class="tab-content">
+              <table id="ips-table">
+                  <thead><tr><th>IP Address</th><th style="text-align: right;">Action</th></tr></thead>
+                  <tbody></tbody>
+              </table>
+          </div>
+          <div id="users-tab" class="tab-content" style="display:none;">
+              <table id="users-table">
+                  <thead><tr><th>User ID</th><th style="text-align: right;">Action</th></tr></thead>
+                  <tbody></tbody>
+              </table>
+          </div>
+          <div id="tokens-tab" class="tab-content" style="display:none;">
+              <table id="tokens-table">
+                  <thead><tr><th>Token Signature</th><th style="text-align: right;">Action</th></tr></thead>
+                  <tbody></tbody>
+              </table>
+          </div>
+      </div>
+    </section>
+
+
 
   </main>
   <script src="/js/stats.js" nonce="${data.nonce}"></script>

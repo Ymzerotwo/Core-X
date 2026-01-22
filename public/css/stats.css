@@ -304,3 +304,199 @@ body {
   background: rgba(255, 189, 0, 0.2);
   color: #ffbd00;
 }
+
+/* Banning Management Styles */
+.ban-controls {
+  background: var(--card-bg);
+  padding: 0;
+  border-radius: 16px;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.ban-header {
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.03), transparent);
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ban-header h3 {
+  font-size: 1.1rem;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.ban-header p {
+  font-size: 0.85rem;
+  color: var(--nav-text);
+  margin: 0;
+}
+
+.ban-form-grid {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 150px;
+}
+
+.action-group {
+  flex: 0 0 auto;
+  min-width: unset;
+}
+
+.input-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--server-label);
+  letter-spacing: 0.05em;
+  margin-left: 2px;
+}
+
+.form-control {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color);
+  color: var(--text);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 3px rgba(29, 85, 226, 0.15);
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.btn-danger:hover {
+  background: #EF4444;
+  color: white;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 4px 6px rgba(32, 92, 243, 0.25);
+}
+
+.btn-primary:hover {
+  background: #1d55e2;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(32, 92, 243, 0.35);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Table Styles - Enhanced */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 0;
+}
+
+th {
+  text-align: left;
+  padding: 1rem 1.5rem;
+  color: var(--nav-text);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Tabs - Enhanced */
+.tab-nav {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 1rem 0.5rem;
+  color: var(--nav-text);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  opacity: 0.7;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+  opacity: 1;
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  opacity: 1;
+}
+
+.tab-content {
+  padding: 0.5rem 0;
+}

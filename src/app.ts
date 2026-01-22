@@ -9,9 +9,12 @@ import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 import { logger } from './config/logger.js';
 import { securityMiddleware } from './middleware/security.middleware.js';
+import { globalBanMiddleware } from './middleware/ban.middleware.js';
 import { csrfProtection } from './middleware/csrf.middleware.js';
 import { sendResponse } from './utils/responseHandler.js';
 import { HTTP_CODES, RESPONSE_KEYS } from './constants/responseCodes.js';
+import { requestsService } from './services/requests.service.js';
+import { statsMiddleware } from './middleware/stats.middleware.js';
 import adminRoutes from './routes/admin/admin.routes.js';
 import crypto from 'crypto';
 import stateRoutes from './routes/state/state.routes.js';
@@ -111,10 +114,12 @@ const generalLimiter = rateLimit({
   skip: (req: Request) => req.path.startsWith('/state/') || req.path.startsWith('/admin/')
 });
 app.use('/api', generalLimiter);
+app.use(globalBanMiddleware); // Check for banned IPs immediately
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: true }));
 app.use(hpp());
+app.use(statsMiddleware);
 app.use(securityMiddleware);
 app.use(csrfProtection);
 app.use('/admin', adminRoutes);
@@ -136,6 +141,9 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     requestId: req.id,
     url: req.originalUrl
   });
+
+  requestsService.logSystemError(err, req);
+
   return sendResponse(
     res,
     req,

@@ -3,6 +3,7 @@ import 'dotenv/config';
 import app from './app.js';
 import { logger } from './config/logger.js';
 import { testSupabaseConnection } from './config/supabase.js';
+import { requestsService } from './services/requests.service.js';
 type Environment = 'development' | 'production' | 'test';
 
 const PORT: number = parseInt(process.env.PORT || '5000', 10);
@@ -37,6 +38,7 @@ const startServer = async () => {
       logger.info(`\n${signal} received. Initiating graceful shutdown...`);
       server.close(() => {
         logger.info('HTTP server closed. Exiting process...');
+        requestsService.dispose(); // Save stats before exit
         process.exit(0);
       });
       setTimeout(() => {
@@ -94,4 +96,4 @@ startServer();
  *
  * 🚀 Usage:
  * - `npm start` or `node src/server.js`
- */ 
+ */

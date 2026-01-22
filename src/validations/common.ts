@@ -84,6 +84,50 @@ export const usernameRule = z
 export const textRule = (fieldName: string = 'Text', max: number = 1000) =>
     safeString(fieldName, 0, max).optional();
 
+const validateValueByType = (type: string, value: string, ctx: z.RefinementCtx) => {
+    if (type === 'ip') {
+        const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+        const ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
+
+        const isIp = ipv4Regex.test(value) || ipv6Regex.test(value);
+        if (!isIp) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Invalid IP address format. Must be a valid IPv4 or IPv6 Address.",
+                path: ["value"]
+            });
+        }
+    } else if (type === 'user') {
+        const uuidResult = z.string().uuid().safeParse(value);
+        if (!uuidResult.success) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Invalid User ID. Must be a valid UUID (e.g. 550e8400-e29b-41d4-a716-446655440000).",
+                path: ["value"]
+            });
+        }
+    } else if (type === 'token') {
+        if (value.length < 10) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Token signature is too short. Please provide a valid token signature.",
+                path: ["value"]
+            });
+        }
+    }
+};
+
+export const banItemSchema = z.object({
+    type: z.enum(['ip', 'user', 'token']),
+    value: z.string().min(1, { message: "Value is required" }),
+    reason: z.string().optional()
+}).superRefine((data, ctx) => validateValueByType(data.type, data.value, ctx));
+
+export const unbanItemSchema = z.object({
+    type: z.enum(['ip', 'user', 'token']),
+    value: z.string().min(1, { message: "Value is required" })
+}).superRefine((data, ctx) => validateValueByType(data.type, data.value, ctx));
+
 /*
  * ==============================================================================
  * 🛡️ Common Validation Rules (by Ym_zerotwo)

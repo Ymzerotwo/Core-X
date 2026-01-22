@@ -1,19 +1,31 @@
 import { Request, Response, NextFunction } from 'express';
 import { SecurityValidator } from '../utils/securityValidator.js';
 import { logThreat } from '../config/logger.js';
+import { requestsService } from '../services/requests.service.js';
 import { sendResponse } from '../utils/responseHandler.js';
 import { HTTP_CODES, RESPONSE_KEYS } from '../constants/responseCodes.js';
+import { banningService } from '../services/banning.service.js';
 
-export const securityMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const securityMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const userAgent = req.headers['user-agent'] || '';
   const uaCheck = SecurityValidator.scan(userAgent);
   if (!uaCheck.isSafe && uaCheck.action === 'BLOCK') {
+    const isHighSeverity = uaCheck.threats.some(t => t.severity === 'HIGH');
     logThreat({
       event: 'SUSPICIOUS_USER_AGENT',
-      ip: req.ip,
+      ip: req.ip || 'unknown',
       ua: userAgent,
-      severity: 'MEDIUM'
+      severity: isHighSeverity ? 'HIGH' : 'MEDIUM'
     });
+    requestsService.logIntrusion(req, {
+      severity: isHighSeverity ? 'HIGH' : 'MEDIUM',
+      type: 'SUSPICIOUS_USER_AGENT',
+      details: uaCheck.threats.map(t => t.type).join(', ')
+    });
+    if (isHighSeverity) {
+      const ip = req.ip || req.connection.remoteAddress || 'unknown';
+      await banningService.banIp(ip, `High Severity Threat: ${uaCheck.threats.map(t => t.type).join(', ')}`);
+    }
     return sendResponse(res, req, HTTP_CODES.FORBIDDEN, RESPONSE_KEYS.PERMISSION_DENIED, null, null, { reason: 'Suspicious Client via WAF' });
   }
   next();

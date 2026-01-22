@@ -3,8 +3,9 @@ import { Request, Response, NextFunction } from 'express';
 import { sendResponse } from '../utils/responseHandler.js';
 import { HTTP_CODES, RESPONSE_KEYS } from '../constants/responseCodes.js';
 import { logThreat } from '../config/logger.js';
+import { banningService } from '../services/banning.service.js';
 
-export const validate = (schema: ZodSchema<any>) => (req: Request, res: Response, next: NextFunction) => {
+export const validate = (schema: ZodSchema<any>) => async (req: Request, res: Response, next: NextFunction) => {
     try {
         schema.parse({
             body: req.body,
@@ -15,14 +16,11 @@ export const validate = (schema: ZodSchema<any>) => (req: Request, res: Response
     } catch (error) {
         if (error instanceof z.ZodError) {
             const zodErrors = error.issues;
-
             const isMalicious = zodErrors.some((err: z.ZodIssue) => err.message === "MALICIOUS_INPUT_DETECTED");
-
             if (isMalicious) {
                 const threatDetails = zodErrors
                     .filter((err: z.ZodIssue) => err.message === "MALICIOUS_INPUT_DETECTED")
                     .map((err: z.ZodIssue) => ({ field: err.path.join('.'), input: "HIDDEN_FOR_SECURITY" }));
-
                 logThreat({
                     event: 'MALICIOUS_INPUT_BLOCKED',
                     ip: req.ip,
@@ -31,6 +29,9 @@ export const validate = (schema: ZodSchema<any>) => (req: Request, res: Response
                     details: threatDetails,
                     severity: 'CRITICAL'
                 });
+                // Auto-Ban IP on Critical Threats
+                const ip = req.ip || req.connection.remoteAddress || 'unknown';
+                await banningService.banIp(ip, 'CRITICAL: Malicious Input Detected (SQLi/XSS)');
                 return sendResponse(
                     res,
                     req,

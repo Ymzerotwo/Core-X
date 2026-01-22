@@ -5,7 +5,7 @@ import { logger } from '../../config/logger.js';
 
 let cachedDiskUsage: any = null;
 let diskUsageLastUpdated = 0;
-const DISK_CACHE_DURATION = 5 * 60 * 1000; 
+const DISK_CACHE_DURATION = 5 * 60 * 1000;
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const getCpuUsage = async () => {
@@ -17,7 +17,6 @@ const getCpuUsage = async () => {
     cpusStart.forEach((cpu, i) => {
         const start = cpu.times;
         const end = cpusEnd[i].times;
-
         const idleDiff = end.idle - start.idle;
         const totalDiff = (end.user + end.nice + end.sys + end.idle + end.irq) -
             (start.user + start.nice + start.sys + start.idle + start.irq);
@@ -25,7 +24,6 @@ const getCpuUsage = async () => {
         idle += idleDiff;
         total += totalDiff;
     });
-
     const usedPercentage = total > 0 ? ((total - idle) / total) * 100 : 0;
     return usedPercentage;
 };
@@ -82,7 +80,7 @@ const getSystemStats = async () => {
             diskUsage = {
                 total: totalDisk,
                 used: usedDisk,
-                free: availableDisk, 
+                free: availableDisk,
                 percent: (usedDisk / totalDisk) * 100,
                 formatted: {
                     total: formatBytes(totalDisk),
@@ -146,7 +144,6 @@ const getRealtimeStats = async () => {
     };
 };
 
-
 export const getStatsJson = async (req: Request, res: Response) => {
     try {
         const stats = await getSystemStats();
@@ -159,7 +156,6 @@ export const getStatsJson = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to fetch stats' });
     }
 };
-
 
 export const getRealtimeStatsJson = async (req: Request, res: Response) => {
     try {

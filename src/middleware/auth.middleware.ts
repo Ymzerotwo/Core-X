@@ -3,6 +3,7 @@ import { User } from '@supabase/supabase-js';
 import supabaseAdmin from '../config/supabase.js';
 import { setCookie, clearCookie, rotateCsrfToken } from './csrf.middleware.js';
 import { HTTP_CODES, RESPONSE_KEYS } from '../constants/responseCodes.js';
+import { banningService } from '../services/banning.service.js';
 import { sendResponse } from '../utils/responseHandler.js';
 import { logger, logThreat } from '../config/logger.js';
 // import jwt from 'jsonwebtoken'; // Uncomment if using Local Verification
@@ -41,12 +42,20 @@ const coreAuth = async (req: Request, res: Response, next: NextFunction) => {
         if (accessToken) {
             // ☁️ Cloud Verification (Default)
             const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
-
             if (user && !error) {
+                // Security Check: Token Revocation
+                if (banningService.isTokenRevoked(accessToken)) {
+                    logger.warn(`🚫 Blocked Revoked Token: ${accessToken.substring(0, 10)}...`);
+                    return sendResponse(res, req, HTTP_CODES.UNAUTHORIZED, RESPONSE_KEYS.INVALID_TOKEN);
+                }
+                // Security Check: User Ban
+                if (banningService.isUserBanned(user.id)) {
+                    logger.warn(`🚫 Blocked Banned User: ${user.id}`);
+                    return sendResponse(res, req, HTTP_CODES.FORBIDDEN, RESPONSE_KEYS.PERMISSION_DENIED, null, null, { reason: 'User Account is Banned' });
+                }
                 req.user = standardizeUser(user, false);
                 return next();
             }
-
             // If token is invalid/expired on server, try to refresh
             shouldRefresh = true;
         } else {
@@ -102,7 +111,7 @@ const localAuth = async (req: Request, res: Response, next: NextFunction) => {
         const accessToken = req.signedCookies['access_token'];
         const refreshToken = req.signedCookies['refresh_token'];
         const jwtSecret = process.env.SUPABASE_JWT_SECRET;
-        
+
         if (!jwtSecret) {
             throw new Error('SUPABASE_JWT_SECRET is missing in environment variables');
         }
@@ -116,6 +125,19 @@ const localAuth = async (req: Request, res: Response, next: NextFunction) => {
                 // To use this: uncomment 'import jwt from 'jsonwebtoken';' at the top
                 const decoded = jwt.verify(accessToken, jwtSecret) as jwt.JwtPayload;
                 req.user = standardizeUser(decoded, true);
+
+                // Security Check: Token Revocation
+                if (banningService.isTokenRevoked(accessToken)) {
+                    logger.warn(`🚫 Blocked Revoked Token (Local): ${accessToken.substring(0, 10)}...`);
+                    return sendResponse(res, req, HTTP_CODES.UNAUTHORIZED, RESPONSE_KEYS.INVALID_TOKEN);
+                }
+
+                // Security Check: User Ban
+                if (banningService.isUserBanned(req.user.id)) {
+                    logger.warn(`🚫 Blocked Banned User (Local): ${req.user.id}`);
+                    return sendResponse(res, req, HTTP_CODES.FORBIDDEN, RESPONSE_KEYS.PERMISSION_DENIED, null, null, { reason: 'User Account is Banned' });
+                }
+
                 return next();
             } catch (err) {
                 // Token invalid/expired, proceed to refresh
@@ -141,7 +163,7 @@ const localAuth = async (req: Request, res: Response, next: NextFunction) => {
         }
 
         const { access_token, refresh_token: newRefreshToken, expires_in, user } = data.session;
-        
+
         // Update Cookies
         setCookie(res, 'access_token', access_token, (expires_in || 3600) * 1000);
         setCookie(res, 'refresh_token', newRefreshToken, 7 * 24 * 60 * 60 * 1000);
