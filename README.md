@@ -40,6 +40,11 @@ Instead of writing a backend from scratch, **Core-X** provides a robust, secure,
 core-x/
 ├── dist/               # Compiled JavaScript (Production)
 ├── logs/
+├── public/
+│   ├── css/
+│   │   └── stats.css
+│   └── js/
+│       └── stats.js
 ├── src/
 │   ├── config/
 │   │   ├── logger.ts
@@ -48,20 +53,29 @@ core-x/
 │   │   ├── responseCodes.ts
 │   │   ├── securityPatterns.ts
 │   │   └── validationMessages.ts
-│   ├── controllers/        # (Coming Soon)
+│   ├── controllers/
+│   │   └── stats/
+│   │       └── stats.controller.ts
 │   ├── db/                 # (Coming Soon)
 │   ├── middleware/
 │   │   ├── auth.middleware.ts
 │   │   ├── csrf.middleware.ts
+│   │   ├── ip.middleware.ts
 │   │   ├── security.middleware.ts
 │   │   └── validate.ts
-│   ├── routes/             # (Coming Soon)
+│   ├── routes/
+│   │   ├── admin.routes.ts
+│   │   └── state.routes.ts
 │   ├── services/           # (Coming Soon)
+│   ├── types/
+│   │   └── express.d.ts
 │   ├── utils/
 │   │   ├── responseHandler.ts
 │   │   └── securityValidator.ts
 │   ├── validations/
 │   │   └── common.ts
+│   ├── views/
+│   │   └── stats.view.ts
 │   ├── app.ts
 │   └── server.ts
 ├── tests/
@@ -75,6 +89,29 @@ core-x/
 ├── tsconfig.json
 └── README.md
 ```
+
+---
+
+## 📊 System Monitoring
+
+Core-X includes a built-in system monitoring dashboard that provides real-time insights into server performance and health.
+
+### Features
+- **CPU Usage**: Real-time processor utilization percentage
+- **Memory (RAM)**: System and application memory usage with detailed breakdowns
+- **Disk Usage**: Filesystem storage statistics with available space calculations
+- **Uptime**: Node.js process uptime since server startup
+- **Auto-Refresh**: Optimized polling with disk stats cached to prevent I/O wear
+
+### Endpoints
+- `GET /state/server-state` - Full system statistics (includes disk, CPU, RAM, uptime)
+- `GET /state/server-state/realtime` - Lightweight realtime stats (CPU, RAM, uptime only)
+
+### Frontend Integration
+The monitoring dashboard is accessible at `/` and automatically fetches stats on load. Disk statistics are retrieved once on page load, while CPU, RAM, and uptime update every second for responsive monitoring.
+
+### Configuration
+No additional configuration required - monitoring is enabled by default with IP-based access control.
 
 ---
 
@@ -129,6 +166,7 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 # 🚀 Cluster Configuration
 # =============================================================================
 WORKERS_COUNT=full # 'full' for all cores, or specific number (e.g. 2)
+ALLOWED_IPS=127.0.0.1,::1,::ffff:127.0.0.1
 ```
 
 ### 4. Development & Production
