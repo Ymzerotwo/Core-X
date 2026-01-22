@@ -38,6 +38,8 @@ Instead of writing a backend from scratch, **Core-X** provides a robust, secure,
 
 ```bash
 core-x/
+├── data/
+│   └── requests.json
 ├── dist/               # Compiled JavaScript (Production)
 ├── logs/
 ├── public/
@@ -54,19 +56,30 @@ core-x/
 │   │   ├── securityPatterns.ts
 │   │   └── validationMessages.ts
 │   ├── controllers/
+│   │   ├── admin/
+│   │   │   ├── admin.controller.ts
+│   │   │   └── banning.controller.ts
 │   │   └── stats/
+│   │       ├── req.controller.ts
 │   │       └── stats.controller.ts
-│   ├── db/                 # (Coming Soon)
+│   ├── db/
+│   │   └── supabase_banning.sql
 │   ├── middleware/
 │   │   ├── auth.middleware.ts
+│   │   ├── ban.middleware.ts
 │   │   ├── csrf.middleware.ts
 │   │   ├── ip.middleware.ts
 │   │   ├── security.middleware.ts
+│   │   ├── stats.middleware.ts
 │   │   └── validate.ts
 │   ├── routes/
-│   │   ├── admin.routes.ts
-│   │   └── state.routes.ts
-│   ├── services/           # (Coming Soon)
+│   │   ├── admin/
+│   │   │   └── admin.routes.ts
+│   │   └── state/
+│   │       └── state.routes.ts
+│   ├── services/
+│   │   ├── banning.service.ts
+│   │   └── requests.service.ts
 │   ├── types/
 │   │   └── express.d.ts
 │   ├── utils/
@@ -75,10 +88,12 @@ core-x/
 │   ├── validations/
 │   │   └── common.ts
 │   ├── views/
+│   │   ├── admin/
+│   │   │   └── banning.view.ts
 │   │   └── stats.view.ts
 │   ├── app.ts
 │   └── server.ts
-├── tests/
+├── tests/              # (Coming Soon)
 ├── .env
 ├── .env.example
 ├── .gitignore
