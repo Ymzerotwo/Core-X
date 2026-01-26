@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { User } from '@supabase/supabase-js';
-import supabaseAdmin from '../config/supabase.js';
+import { adminDB } from '../config/supabase.js';
 import { setCookie, clearCookie, rotateCsrfToken } from './csrf.middleware.js';
 import { HTTP_CODES, RESPONSE_KEYS } from '../constants/responseCodes.js';
 import { banningService } from '../services/banning.service.js';
@@ -41,7 +41,7 @@ const coreAuth = async (req: Request, res: Response, next: NextFunction) => {
         }
         if (accessToken) {
             // ☁️ Cloud Verification (Default)
-            const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
+            const { data: { user }, error } = await adminDB.auth.getUser(accessToken);
             if (user && !error) {
                 // Security Check: Token Revocation
                 if (banningService.isTokenRevoked(accessToken)) {
@@ -68,7 +68,7 @@ const coreAuth = async (req: Request, res: Response, next: NextFunction) => {
                 clearCookie(res, 'refresh_token');
                 return sendResponse(res, req, HTTP_CODES.UNAUTHORIZED, RESPONSE_KEYS.TOKEN_EXPIRED);
             }
-            const { data, error: refreshError } = await supabaseAdmin.auth.refreshSession({
+            const { data, error: refreshError } = await adminDB.auth.refreshSession({
                 refresh_token: refreshToken
             });
             if (refreshError || !data.session) {
@@ -152,7 +152,7 @@ const localAuth = async (req: Request, res: Response, next: NextFunction) => {
         }
 
         // We still need Supabase Admin to refresh the session (Refreshes are always online)
-        const { data, error: refreshError } = await supabaseAdmin.auth.refreshSession({
+        const { data, error: refreshError } = await adminDB.auth.refreshSession({
             refresh_token: refreshToken
         });
 

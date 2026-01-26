@@ -165,7 +165,7 @@ ENABLE_CONSOLE_LOGS=false # Force console logs in production if true
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SUPABASE_ANON_KEY=your-anon-key # Optional for backend, but good to have
-TEST_SUPABASE_ON_START=true
+
 
 # =============================================================================
 # 🔐 Security Configuration

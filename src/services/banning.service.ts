@@ -1,4 +1,4 @@
-import supabaseAdmin from '../config/supabase.js';
+import { adminDB } from '../config/supabase.js';
 import { logger } from '../config/logger.js';
 
 class BanningService {
@@ -24,15 +24,15 @@ class BanningService {
 
     public async refresh() {
         try {
-            const { data: ips, error: ipError } = await supabaseAdmin
+            const { data: ips, error: ipError } = await adminDB
                 .from('blacklisted_ips')
                 .select('ip_address');
             if (ipError) throw ipError;
-            const { data: users, error: userError } = await supabaseAdmin
+            const { data: users, error: userError } = await adminDB
                 .from('banned_users')
                 .select('user_id');
             if (userError) throw userError;
-            const { data: tokens, error: tokenError } = await supabaseAdmin
+            const { data: tokens, error: tokenError } = await adminDB
                 .from('revoked_tokens')
                 .select('token_signature');
             if (tokenError) throw tokenError;
@@ -54,7 +54,7 @@ class BanningService {
         try {
             const normalizedIp = ip.startsWith('::ffff:') ? ip.substring(7) : ip;
             if (this.blacklistedIps.has(normalizedIp)) return;
-            const { error } = await supabaseAdmin
+            const { error } = await adminDB
                 .from('blacklisted_ips')
                 .insert({
                     ip_address: normalizedIp,
@@ -73,7 +73,7 @@ class BanningService {
     public async banUser(userId: string, reason: string) {
         try {
             if (this.bannedUsers.has(userId)) return;
-            const { error } = await supabaseAdmin
+            const { error } = await adminDB
                 .from('banned_users')
                 .insert({
                     user_id: userId,
@@ -92,7 +92,7 @@ class BanningService {
     public async revokeToken(token: string, reason: string) {
         try {
             if (this.revokedTokens.has(token)) return;
-            const { error } = await supabaseAdmin
+            const { error } = await adminDB
                 .from('revoked_tokens')
                 .insert({
                     token_signature: token,
@@ -110,7 +110,7 @@ class BanningService {
     public async unbanIp(ip: string) {
         try {
             const normalizedIp = ip.startsWith('::ffff:') ? ip.substring(7) : ip;
-            const { error } = await supabaseAdmin
+            const { error } = await adminDB
                 .from('blacklisted_ips')
                 .delete()
                 .eq('ip_address', normalizedIp);
@@ -126,7 +126,7 @@ class BanningService {
 
     public async unbanUser(userId: string) {
         try {
-            const { error } = await supabaseAdmin
+            const { error } = await adminDB
                 .from('banned_users')
                 .delete()
                 .eq('user_id', userId);
@@ -141,7 +141,7 @@ class BanningService {
 
     public async unrevokeToken(token: string) {
         try {
-            const { error } = await supabaseAdmin
+            const { error } = await adminDB
                 .from('revoked_tokens')
                 .delete()
                 .eq('token_signature', token);
