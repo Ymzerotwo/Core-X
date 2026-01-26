@@ -308,6 +308,9 @@ Core-X enforces a strict, unified JSON response format for all endpoints, ensuri
 | **Deep Input Scan** | Recursively scans all incoming JSON bodies for SQL Injection, XSS, and Prototype Pollution attacks. |
 | **Secure Headers** | Implements HSTS, CSP, NoSniff, and Frameguard via Helmet. |
 | **Rate Limiting** | Limits requests to 200 per 15 minutes per IP to prevent Brute Force / DDoS. |
+> **⚠️ Important Note on Clustering & Rate Limiting:**
+> Currently, the project is configured to use a single worker process (`WORKERS_COUNT=1`) by default in `.env`. This ensures that the in-memory Rate Limiting works accurately and strictly.
+> If you wish to use multi-core Clustering (`WORKERS_COUNT=full`) in production, you **MUST** integrate **Redis** to share the rate limit state across all worker processes. Native Redis support is planned to be integrated into this project in future updates.
 
 ---
 
