@@ -21,6 +21,7 @@ const validateEnv = () => {
     'SUPABASE_ANON_KEY',
     'COOKIE_SECRET',
     'WORKERS_COUNT',
+    'REDIS_URL',
     // 'SUPABASE_JWT_SECRET' // Not strictly required if using Cloud Auth
   ];
   const missingVars = REQUIRED_VARS.filter(key => !process.env[key]);

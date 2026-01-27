@@ -12,9 +12,9 @@ export const getBanningPage = (req: ExpressRequest, res: ExpressResponse) => {
 
 export const getBans = async (req: ExpressRequest, res: ExpressResponse) => {
     const data = {
-        ips: banningService.getBlacklistedIps(),
-        users: banningService.getBannedUsers(),
-        tokens: banningService.getRevokedTokens()
+        ips: await banningService.getBlacklistedIps(),
+        users: await banningService.getBannedUsers(),
+        tokens: await banningService.getRevokedTokens()
     };
     return sendResponse(res, req, HTTP_CODES.OK, RESPONSE_KEYS.DATA_RETRIEVED, data);
 };

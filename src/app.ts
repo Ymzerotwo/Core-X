@@ -7,6 +7,8 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { v4 as uuidv4 } from 'uuid';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
+import { RedisStore } from 'rate-limit-redis';
+import { redis } from './config/redis.js';
 import { logger } from './config/logger.js';
 import { securityMiddleware } from './middleware/security.middleware.js';
 import { globalBanMiddleware } from './middleware/ban.middleware.js';
@@ -104,6 +106,8 @@ app.use(cors({
 
 app.use(compression({ level: 6, threshold: 1024 }));
 
+app.use(globalBanMiddleware); // Check for banned IPs FIRST
+
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
@@ -111,10 +115,12 @@ const generalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => ipKeyGenerator(req.ip || '127.0.0.1'),
-  skip: (req: Request) => req.path.startsWith('/state/') || req.path.startsWith('/admin/')
+  skip: (req: Request) => req.path.startsWith('/state/') || req.path.startsWith('/admin/'),
+  store: new RedisStore({
+    sendCommand: (...args: string[]) => redis.call(args[0], ...args.slice(1)) as Promise<any>,
+  }),
 });
 app.use('/api', generalLimiter);
-app.use(globalBanMiddleware); // Check for banned IPs immediately
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: true }));

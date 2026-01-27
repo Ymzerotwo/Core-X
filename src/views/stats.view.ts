@@ -296,19 +296,19 @@ export const getStatusPage = (data: {
 
           <div id="ips-tab" class="tab-content">
               <table id="ips-table">
-                  <thead><tr><th>IP Address</th><th style="text-align: right;">Action</th></tr></thead>
+                  <thead><tr><th>IP Address</th><th>Reason</th><th style="text-align: right;">Action</th></tr></thead>
                   <tbody></tbody>
               </table>
           </div>
           <div id="users-tab" class="tab-content" style="display:none;">
               <table id="users-table">
-                  <thead><tr><th>User ID</th><th style="text-align: right;">Action</th></tr></thead>
+                  <thead><tr><th>User ID</th><th>Reason</th><th style="text-align: right;">Action</th></tr></thead>
                   <tbody></tbody>
               </table>
           </div>
           <div id="tokens-tab" class="tab-content" style="display:none;">
               <table id="tokens-table">
-                  <thead><tr><th>Token Signature</th><th style="text-align: right;">Action</th></tr></thead>
+                  <thead><tr><th>Token Signature</th><th>Reason</th><th style="text-align: right;">Action</th></tr></thead>
                   <tbody></tbody>
               </table>
           </div>

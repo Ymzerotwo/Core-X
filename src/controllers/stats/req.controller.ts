@@ -4,7 +4,7 @@ import { requestsService } from '../../services/requests.service.js';
 
 export const getRequestStatsJson = async (req: Request, res: Response) => {
     try {
-        const stats = requestsService.getStats();
+        const stats = await requestsService.getStats();
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');

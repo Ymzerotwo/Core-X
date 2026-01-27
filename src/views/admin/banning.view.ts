@@ -110,19 +110,19 @@ export const getBanningPage = (nonce: string) => `
 
         <div id="ips-tab" class="tab-content">
             <table id="ips-table">
-                <thead><tr><th>IP Address</th><th style="text-align: right;">Action</th></tr></thead>
+                <thead><tr><th>IP Address</th><th>Reason</th><th style="text-align: right;">Action</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
         <div id="users-tab" class="tab-content" style="display:none;">
             <table id="users-table">
-                <thead><tr><th>User ID</th><th style="text-align: right;">Action</th></tr></thead>
+                <thead><tr><th>User ID</th><th>Reason</th><th style="text-align: right;">Action</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
         <div id="tokens-tab" class="tab-content" style="display:none;">
             <table id="tokens-table">
-                <thead><tr><th>Token Signature</th><th style="text-align: right;">Action</th></tr></thead>
+                <thead><tr><th>Token Signature</th><th>Reason</th><th style="text-align: right;">Action</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
@@ -132,7 +132,7 @@ export const getBanningPage = (nonce: string) => `
 
   <script nonce="${nonce}">
     // State
-    let banData = { ips: [], users: [], tokens: [] };
+    let banData = { ips: {}, users: {}, tokens: {} };
 
     // Fetch Data
     async function loadBans() {
@@ -147,28 +147,31 @@ export const getBanningPage = (nonce: string) => `
     // Render
     function renderTables() {
         const ipBody = document.querySelector('#ips-table tbody');
-        ipBody.innerHTML = banData.ips.map(ip => \`
+        ipBody.innerHTML = Object.entries(banData.ips || {}).map(([ip, reason]) => \`
             <tr>
                 <td>\${ip}</td>
+                <td>\${reason || '-'}</td>
                 <td style="text-align: right;"><button class="btn btn-danger" onclick="unban('ip', '\${ip}')">Unban</button></td>
             </tr>
-        \`).join('') || '<tr><td colspan="2" style="text-align: center; color: var(--nav-text);">No IPs currently banned</td></tr>';
+        \`).join('') || '<tr><td colspan="3" style="text-align: center; color: var(--nav-text);">No IPs currently banned</td></tr>';
 
         const userBody = document.querySelector('#users-table tbody');
-        userBody.innerHTML = banData.users.map(u => \`
+        userBody.innerHTML = Object.entries(banData.users || {}).map(([u, reason]) => \`
              <tr>
                 <td>\${u}</td>
+                <td>\${reason || '-'}</td>
                 <td style="text-align: right;"><button class="btn btn-danger" onclick="unban('user', '\${u}')">Unban</button></td>
             </tr>
-        \`).join('') || '<tr><td colspan="2" style="text-align: center; color: var(--nav-text);">No Users currently banned</td></tr>';
+        \`).join('') || '<tr><td colspan="3" style="text-align: center; color: var(--nav-text);">No Users currently banned</td></tr>';
 
         const tokenBody = document.querySelector('#tokens-table tbody');
-        tokenBody.innerHTML = banData.tokens.map(t => \`
+        tokenBody.innerHTML = Object.entries(banData.tokens || {}).map(([t, reason]) => \`
              <tr>
                 <td title="\${t}">\${t.substring(0, 50)}...</td>
+                <td>\${reason || '-'}</td>
                 <td style="text-align: right;"><button class="btn btn-danger" onclick="unban('token', '\${t}')">Restore</button></td>
             </tr>
-        \`).join('') || '<tr><td colspan="2" style="text-align: center; color: var(--nav-text);">No Tokens revoked</td></tr>';
+        \`).join('') || '<tr><td colspan="3" style="text-align: center; color: var(--nav-text);">No Tokens revoked</td></tr>';
     }
 
     // Actions

@@ -44,12 +44,12 @@ const coreAuth = async (req: Request, res: Response, next: NextFunction) => {
             const { data: { user }, error } = await adminDB.auth.getUser(accessToken);
             if (user && !error) {
                 // Security Check: Token Revocation
-                if (banningService.isTokenRevoked(accessToken)) {
+                if (await banningService.isTokenRevoked(accessToken)) {
                     logger.warn(`🚫 Blocked Revoked Token: ${accessToken.substring(0, 10)}...`);
                     return sendResponse(res, req, HTTP_CODES.UNAUTHORIZED, RESPONSE_KEYS.INVALID_TOKEN);
                 }
                 // Security Check: User Ban
-                if (banningService.isUserBanned(user.id)) {
+                if (await banningService.isUserBanned(user.id)) {
                     logger.warn(`🚫 Blocked Banned User: ${user.id}`);
                     return sendResponse(res, req, HTTP_CODES.FORBIDDEN, RESPONSE_KEYS.PERMISSION_DENIED, null, null, { reason: 'User Account is Banned' });
                 }

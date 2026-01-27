@@ -189,7 +189,7 @@ updateRequestStats(); // Load request stats
 setInterval(updateRealtimeStats, 1000); // Update CPU, RAM, uptime every second
 setInterval(updateRequestStats, 60000); // Update Request stats every 60 seconds
 
-let banData = { ips: [], users: [], tokens: [] };
+let banData = { ips: {}, users: {}, tokens: {} };
 
 async function loadBans() {
     try {
@@ -207,38 +207,41 @@ async function loadBans() {
 function renderBanTables() {
     const ipBody = document.querySelector('#ips-table tbody');
     if (ipBody) {
-        ipBody.innerHTML = banData.ips.map(ip => `
+        ipBody.innerHTML = Object.entries(banData.ips || {}).map(([ip, reason]) => `
             <tr>
                 <td>${ip}</td>
+                <td>${reason || '-'}</td>
                 <td style="text-align: right;">
                     <button class="btn btn-danger" data-action="unban" data-type="ip" data-value="${ip}">Unban</button>
                 </td>
             </tr>
-        `).join('') || '<tr><td colspan="2" style="text-align: center; color: var(--nav-text);">No IPs currently banned</td></tr>';
+        `).join('') || '<tr><td colspan="3" style="text-align: center; color: var(--nav-text);">No IPs currently banned</td></tr>';
     }
 
     const userBody = document.querySelector('#users-table tbody');
     if (userBody) {
-        userBody.innerHTML = banData.users.map(u => `
+        userBody.innerHTML = Object.entries(banData.users || {}).map(([u, reason]) => `
              <tr>
                 <td>${u}</td>
+                <td>${reason || '-'}</td>
                 <td style="text-align: right;">
                     <button class="btn btn-danger" data-action="unban" data-type="user" data-value="${u}">Unban</button>
                 </td>
             </tr>
-        `).join('') || '<tr><td colspan="2" style="text-align: center; color: var(--nav-text);">No Users currently banned</td></tr>';
+        `).join('') || '<tr><td colspan="3" style="text-align: center; color: var(--nav-text);">No Users currently banned</td></tr>';
     }
 
     const tokenBody = document.querySelector('#tokens-table tbody');
     if (tokenBody) {
-        tokenBody.innerHTML = banData.tokens.map(t => `
+        tokenBody.innerHTML = Object.entries(banData.tokens || {}).map(([t, reason]) => `
              <tr>
                 <td title="${t}">${t.substring(0, 50)}...</td>
+                <td>${reason || '-'}</td>
                 <td style="text-align: right;">
                     <button class="btn btn-danger" data-action="unban" data-type="token" data-value="${t}">Restore</button>
                 </td>
             </tr>
-        `).join('') || '<tr><td colspan="2" style="text-align: center; color: var(--nav-text);">No Tokens revoked</td></tr>';
+        `).join('') || '<tr><td colspan="3" style="text-align: center; color: var(--nav-text);">No Tokens revoked</td></tr>';
     }
 }
 

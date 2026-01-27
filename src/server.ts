@@ -3,7 +3,9 @@ import 'dotenv/config';
 import app from './app.js';
 import { logger } from './config/logger.js';
 import { testSupabaseConnection } from './config/supabase.js';
+import { redis } from './config/redis.js';
 import { requestsService } from './services/requests.service.js';
+import { banningService } from './services/banning.service.js';
 type Environment = 'development' | 'production' | 'test';
 
 const PORT: number = parseInt(process.env.PORT || '5000', 10);
@@ -19,7 +21,12 @@ if (missing.length > 0) {
 const startServer = async () => {
   try {
     const dbConnected = await testSupabaseConnection();
-    if (!dbConnected) {
+    if (dbConnected) {
+      // Restore bans from DB to Redis on startup
+      await banningService.restoreFromDb();
+      // Restore requests stats from local file to Redis
+      await requestsService.restoreFromLocal();
+    } else {
       if (ENV === 'production') {
         logger.warn('⚠️ Starting server without DB connection (Risk Mode - Production)');
       } else {
@@ -36,9 +43,11 @@ const startServer = async () => {
     });
     const gracefulShutdown = (signal: string) => {
       logger.info(`\n${signal} received. Initiating graceful shutdown...`);
-      server.close(() => {
+      server.close(async () => {
         logger.info('HTTP server closed. Exiting process...');
-        requestsService.dispose(); // Save stats before exit
+        await requestsService.dispose(); // Save stats before exit (Now Async)
+        await banningService.syncToDb(); // Backup bans to DB
+        await redis.quit(); // Close Redis connection
         process.exit(0);
       });
       setTimeout(() => {

@@ -28,6 +28,7 @@ Instead of writing a backend from scratch, **Core-X** provides a robust, secure,
 *   **Runtime**: Node.js (TypeScript)
 *   **Framework**: Express.js
 *   **Database & Auth**: Supabase (PostgreSQL)
+*   **Caching & State**: Redis (ioredis)
 *   **Validation**: Zod
 *   **Security**: Helmet, HPP, CSURF (Custom Implementation), Express-Rate-Limit
 *   **Logging**: Winston & Winston-Daily-Rotate-File
@@ -50,6 +51,7 @@ core-x/
 ├── src/
 │   ├── config/
 │   │   ├── logger.ts
+│   │   ├── redis.ts
 │   │   └── supabase.ts
 │   ├── constants/
 │   │   ├── responseCodes.ts
@@ -134,7 +136,12 @@ No additional configuration required - monitoring is enabled by default with IP-
 
 ### 1. Prerequisites
 *   Node.js (v18 or higher)
+*   **Redis (v6 or higher)** - Required for State Management & Rate Limiting
 *   Supabase Account (for URL and Keys)
+
+> **⚠️ Critical Requirement:**
+> This project **REQUIRES** a running Redis instance to function. It is used for real-time state management, banning, and request tracking.
+> Please ensure Redis is installed and running locally or use a cloud provider.
 
 ### 2. Installation
 Clone the repository and install dependencies:
@@ -308,9 +315,9 @@ Core-X enforces a strict, unified JSON response format for all endpoints, ensuri
 | **Deep Input Scan** | Recursively scans all incoming JSON bodies for SQL Injection, XSS, and Prototype Pollution attacks. |
 | **Secure Headers** | Implements HSTS, CSP, NoSniff, and Frameguard via Helmet. |
 | **Rate Limiting** | Limits requests to 200 per 15 minutes per IP to prevent Brute Force / DDoS. |
-> **⚠️ Important Note on Clustering & Rate Limiting:**
-> Currently, the project is configured to use a single worker process (`WORKERS_COUNT=1`) by default in `.env`. This ensures that the in-memory Rate Limiting works accurately and strictly.
-> If you wish to use multi-core Clustering (`WORKERS_COUNT=full`) in production, you **MUST** integrate **Redis** to share the rate limit state across all worker processes. Native Redis support is planned to be integrated into this project in future updates.
+> **🚀 Power of Clustering & Redis:**
+> Core-X is designed to run in **Cluster Mode** (`WORKERS_COUNT=full`), utilizing all available CPU cores for maximum performance.
+> To ensure state consistency across these workers (e.g., for Rate Limiting and Banning), **Redis is strictly required**. The application will not start without a valid `REDIS_URL`. This architecture ensures that if one worker blocks an IP, *all* workers respect that block immediately.
 
 ---
 
