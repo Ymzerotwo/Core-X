@@ -65,7 +65,11 @@ core-x/
 │   │       ├── req.controller.ts
 │   │       └── stats.controller.ts
 │   ├── db/
-│   │   └── supabase_banning.sql
+│   │   ├── features.sql
+│   │   ├── payment.sql
+│   │   ├── session.sql
+│   │   ├── supabase_banning.sql
+│   │   └── user.sql
 │   ├── middleware/
 │   │   ├── auth.middleware.ts
 │   │   ├── ban.middleware.ts
@@ -147,8 +151,8 @@ No additional configuration required - monitoring is enabled by default with IP-
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/Ymzerotwo/core-x.git
-cd core-x
+git clone https://github.com/Ymzerotwo/Core-X.git
+cd Core-X
 npm install
 ```
 
@@ -180,7 +184,6 @@ SUPABASE_ANON_KEY=your-anon-key # Optional for backend, but good to have
 # Generate a strong secret by running this in terminal: 
 # node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 COOKIE_SECRET=super_secure_random_string_at_least_32_chars
-# SUPABASE_JWT_SECRET=your-jwt-secret (Optional for Local Verification)
 # SUPABASE_JWT_SECRET=your-jwt-secret (Optional for Local Verification)
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 
@@ -388,7 +391,7 @@ This project is intended to be a community-driven starting point. Pull requests 
 
 Have questions or want to collaborate? I'd love to hear from you!
 
-- **linktr.ee**: [Connect with me](https://linktr.ee/Ym_zerotwo)
+- **Website**: [Ymzerotwo](https://ymzerotwo.com)
 
 ---
 
